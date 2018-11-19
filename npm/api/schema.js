@@ -10,6 +10,53 @@ var UserSchema = new Schema({
         type: Date,
         default: Date.now
     },
+});
+
+var LocationSchema = new Schema({
+    type: {
+        type: String,
+        enum: ['Point'],
+        required: "Location must be of type 'Point'"
+    },
+    coordinates: {
+        type: [Number],
+        required: "Please enter a set of Geo Coordinates",
+        validate: [validateLocation, "Coordinates are not of format [long, lat] required"]
+    }
+});
+
+var AreaSchema = new Schema({
+    type: {
+        type: String,
+        enum: ['Polygon'],
+        required: "Area must be of type 'Polygon"
+    },
+    coordinates: {
+        type: [[Number]],
+        required: "Please enter a set of Geo Coordinates",
+        validate: [validateArea, "Coordinates are not of format [(long, lat)] required "]
+    }
 })
 
-module.exports = mongoose.model("Users", UserSchema);
+function validateLocation(val) {
+    console.log("validate coordinates value: " + val);
+
+    if (val.length != 2) {
+        return false
+    }
+    return true
+}
+
+function validateArea(val) {
+    console.log("validate area value: " + val);
+
+    val.forEach(function(element) {
+        console.log(element);
+    });
+}
+
+module.exports = {
+    Users: mongoose.model("Users", UserSchema),
+    Locations: mongoose.model("Locations", LocationSchema),
+    Areas: mongoose.model("Areas", AreaSchema)
+}

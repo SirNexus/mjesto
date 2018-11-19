@@ -7,6 +7,10 @@ ADD start.sh /root
 RUN apt-get update && apt-get install -y vim \
     nginx
 
+ADD npm /root/npm
+
+ADD static /static/
+
 WORKDIR /root/npm
 
 RUN npm install --prefix /root/npm

@@ -9,5 +9,5 @@ nginx
 while [ true ]
 do
     echo "In start script!"
-    sleep 5
+    sleep 500
 done
