@@ -19,9 +19,14 @@ var LocationSchema = new Schema({
         required: "Location must be of type 'Point'"
     },
     coordinates: {
-        type: [Number],
-        required: "Please enter a set of Geo Coordinates",
-        validate: [validateLocation, "Coordinates are not of format [long, lat] required"]
+        lat: {
+            type: Number,
+            required: "Please enter a latitude",
+        },
+        lng: {
+            type: Number,
+            required: "Please enter a longitude"
+        }
     }
 });
 

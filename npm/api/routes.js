@@ -61,7 +61,7 @@ function deleteUserByID(req, res) {
 var Location = Schema.Locations;
 
 function getLocations(req, res) {
-    console.log("req body: " + util.inspect(req.body));
+    console.log("In Get Location Function")
     Location.find({}, function(err, location) {
         if (err) res.send(err);
         res.json(location);

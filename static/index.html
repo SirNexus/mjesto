@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
     <title>Simple Map</title>
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
@@ -20,24 +19,13 @@
     </style>
   </head>
   <body>
+    <button id="postButton">Click to Populate!</button>
+    <!-- TODO: button to create parking spot at location -->
+    <button id="createSpot">Create a Spot</button>
+    <!-- TODO: Simple UI for specifying: spot type,  -->
     <div id="map"></div>
-    <script>
-      var map;
-      function initMap() {
-        map = new google.maps.Map(document.getElementById('map'), {
-          center: {lat: 44.5646, lng: -123.2620},
-          zoom: 14
-        });
-        google.maps.event.addListener(map, "click", function (event) {
-          console.log(event.latLng.lat());
-          console.log(event.latLng.lng());
-
-          var marker = new google.maps.Marker({position: event.latLng, map: map});
-        });
-      }
-
-    </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDbprcqa9fyhql1QJQAr2M9k662Z6BiPko&callback=initMap"
     async defer></script>
+    <script src="./script.js"></script>
   </body>
 </html>
