@@ -11,6 +11,8 @@ function initMap() {
         zoom: 14
     });
 
+    console.log(map);
+
     google.maps.event.addListener(map, "click", function (event) {
         console.log(event.latLng);
         console.log(event.latLng.lat());

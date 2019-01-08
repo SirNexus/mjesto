@@ -1,15 +1,10 @@
 FROM node:10
 
-# RUN apt-get update && apt-get -y vim
-
 ADD start.sh /root
 
-RUN apt-get update && apt-get install -y vim \
-    nginx
+RUN apt-get update && apt-get install -y vim 
 
-ADD npm /root/npm
-
-ADD static /static/
+ADD . /root/npm
 
 WORKDIR /root/npm
 

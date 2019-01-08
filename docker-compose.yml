@@ -1,12 +1,16 @@
 version: '3'
 services:
-  node:
-    build: .
+  backend:
+    build: npm
     volumes:
       - ./npm:/root/npm
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./static:/static
-    # environment:
-      # - PORT=80
+    ports:
+      - "3000:3000"
+  frontend:
+    build: frontend
+    volumes:
+      - ./frontend/index.html:/static/index.html
+      - ./frontend/script.js:/static/script.js
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "80:80"
