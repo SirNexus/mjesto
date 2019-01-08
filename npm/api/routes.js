@@ -72,6 +72,12 @@ function insertLocation(req, res) {
     console.log("req body: " + util.inspect(req.body));    
     var new_location = new Location(req.body);
 
+    console.log(new_location);
+
+    if (new_location.restriction == "limited" && new_location.limit == undefined){
+        return res.send("A limited time parking spot must have a time limit");
+    }
+
     new_location.save(function(err, location) {
         if (err) res.send(err);
         res.json(location);

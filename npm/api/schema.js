@@ -8,15 +8,27 @@ var UserSchema = new Schema({
     },
     created_date: {
         type: Date,
-        default: Date.now
+        default: Date.now()
     },
 });
 
 var LocationSchema = new Schema({
     type: {
         type: String,
-        enum: ['Point'],
+        enum: ["Point"],
         required: "Location must be of type 'Point'"
+    },
+    created_date: {
+        type: Date,
+        default: Date.now()
+    },
+    restriction: {
+        type: String,
+        enum: ["restricted", "unlimited", "limited"],
+        required: "Location must have a restriction"
+    },
+    limit: {
+        type: Number,
     },
     coordinates: {
         lat: {
