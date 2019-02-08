@@ -79,10 +79,22 @@ public class MapsActivity extends FragmentActivity
             ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
                     FINE_LOCATION_PERMISSION_REQUEST );
         }
-        mMap.setMyLocationEnabled(true);
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode){
+            case FINE_LOCATION_PERMISSION_REQUEST:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    mMap.setMyLocationEnabled(true);
+                }
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        }
     }
 
     @NonNull
