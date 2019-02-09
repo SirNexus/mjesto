@@ -20,11 +20,15 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.io.IOException;
 
 public class MapsActivity extends FragmentActivity
         implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
+        GoogleMap.OnMarkerClickListener,
         OnMapReadyCallback {
 
     private static final String TAG = MapsActivity.class.getSimpleName();
@@ -68,7 +72,11 @@ public class MapsActivity extends FragmentActivity
 
         // Add a marker in Sydney and move the camera
         LatLng corvallis = new LatLng(44.5646, -123.2620);
-        mMap.addMarker(new MarkerOptions().position(corvallis).title("Marker in corvallis"));
+        Marker marker = mMap.addMarker(new MarkerOptions().position(corvallis).title("Marker in corvallis"));
+        marker.setTag(null);
+
+        mMap.setOnMarkerClickListener(this);
+
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -117,6 +125,29 @@ public class MapsActivity extends FragmentActivity
         new MjestoGetLocationsTask().execute(url);
     }
 
+    private void populateMap(MjestoUtils.Location[] locations) {
+        for (MjestoUtils.Location location : locations) {
+            LatLng coords = new LatLng(location.coordinates.lat, location.coordinates.lng);
+
+            Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
+            marker.setTag(location);
+
+        }
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        MjestoUtils.Location location = (MjestoUtils.Location) marker.getTag();
+
+        if (location == null) {
+            Toast.makeText(this, "Null location", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Type: " + location.restriction, Toast.LENGTH_LONG).show();
+        }
+
+        return true;
+    }
+
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
 
         @Override
@@ -127,13 +158,35 @@ public class MapsActivity extends FragmentActivity
         }
 
         @Override
-        protected String doInBackground(String... strings) {
-            return null;
+        protected String doInBackground(String... urls) {
+            String url = urls[0];
+            String results = null;
+            try {
+                results = NetworkUtils.doHttpGet(url);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return results;
         }
 
         @Override
         protected void onPostExecute(String s) {
-            super.onPostExecute(s);
+
+//            Toast.makeText(getApplication().getBaseContext(), "id: " + locations[0]._id, Toast.LENGTH_LONG).show();
+
+            if (s != null) {
+                mPopulateButton.setText("Populate Map");
+                MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(s);
+                if (locations != null) {
+                    populateMap(locations);
+                }
+            } else {
+                mPopulateButton.setText("Error Populating");
+            }
+            mPopulateButton.setVisibility(View.VISIBLE);
+            mPopulateProgress.setVisibility(View.INVISIBLE);
+
         }
     }
 
