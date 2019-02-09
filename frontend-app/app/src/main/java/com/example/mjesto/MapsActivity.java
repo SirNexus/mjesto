@@ -12,6 +12,8 @@ import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -29,6 +31,7 @@ public class MapsActivity extends FragmentActivity
         implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMarkerClickListener,
+        GoogleMap.OnMapClickListener,
         OnMapReadyCallback {
 
     private static final String TAG = MapsActivity.class.getSimpleName();
@@ -38,6 +41,7 @@ public class MapsActivity extends FragmentActivity
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
+    private FrameLayout mSpot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +52,7 @@ public class MapsActivity extends FragmentActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        mSpot = findViewById(R.id.fl_spot);
         mPopulateProgress = findViewById(R.id.pb_load_populate);
         mPopulateButton = findViewById(R.id.b_populate_map);
         mPopulateButton.setOnClickListener(new View.OnClickListener() {
@@ -76,6 +81,7 @@ public class MapsActivity extends FragmentActivity
         marker.setTag(null);
 
         mMap.setOnMarkerClickListener(this);
+        mMap.setOnMapClickListener(this);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
 
@@ -145,7 +151,15 @@ public class MapsActivity extends FragmentActivity
             Toast.makeText(this, "Type: " + location.restriction, Toast.LENGTH_LONG).show();
         }
 
+        mSpot.setVisibility(View.VISIBLE);
+        mSpot.setClickable(false);
+
         return true;
+    }
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        mSpot.setVisibility(View.INVISIBLE);
     }
 
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
