@@ -25,7 +25,8 @@ var LocationSchema = new Schema({
     restriction: {
         type: String,
         enum: ["restricted", "unlimited", "limited"],
-        required: "Location must have a restriction"
+        required: "Location must have a restriction",
+        validate: [validateLocation, "limit must be defined for limited restriction"]
     },
     limit: {
         type: Number,
@@ -55,11 +56,12 @@ var AreaSchema = new Schema({
     }
 })
 
-function validateLocation(val) {
-    console.log("validate coordinates value: " + val);
-
-    if (val.length != 2) {
-        return false
+function validateLocation (val) {
+    if (val == "limited" && this.limit == undefined) {
+        return false;
+    } else if (val != "limited") {
+        this.limit = undefined;
+        return true;
     }
     return true
 }
