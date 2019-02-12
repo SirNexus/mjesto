@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Mjesto</string>
     <string name="title_activity_maps">Map</string>
+    <string name="spot_view_more">Spot Info</string>
+    <string name="spot_label_type">Type: </string>
+    <string name="spot_label_limit">Limit: </string>
+
 </resources>

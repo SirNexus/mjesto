@@ -11,10 +11,17 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
+import android.widget.Adapter;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -26,13 +33,15 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class MapsActivity extends FragmentActivity
         implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
-        OnMapReadyCallback {
+        OnMapReadyCallback,
+        AdapterView.OnItemSelectedListener {
 
     private static final String TAG = MapsActivity.class.getSimpleName();
 
@@ -41,7 +50,12 @@ public class MapsActivity extends FragmentActivity
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
-    private FrameLayout mSpot;
+    private LinearLayout mSpot;
+    private Spinner mSpotTypeSpinner;
+    private LinearLayout mSpotLimitedLL;
+    private ArrayList<String> mSpotTypes;
+    private EditText mSpotLimitedET;
+    private Button mSpotSubmit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +75,25 @@ public class MapsActivity extends FragmentActivity
                doMjestoGetLocations();
            }
        });
+        mSpotLimitedLL = findViewById(R.id.ll_spot_limited);
+        mSpotTypeSpinner = findViewById(R.id.s_spot_type);
+        mSpotLimitedET = findViewById(R.id.et_spot);
+        mSpotSubmit = findViewById(R.id.b_spot_submit);
+//        mSpotSubmit.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                do MjestoPutLocation();
+//            }
+//        });
+
+        mSpotTypes = new ArrayList<>();
+        mSpotTypes.add("unrestricted");
+        mSpotTypes.add("limited");
+        mSpotTypes.add("restricted");
+
+        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
+        mSpotTypeSpinner.setOnItemSelectedListener(this);
+
     }
     /**
      * Manipulates the map once available.
@@ -147,9 +180,25 @@ public class MapsActivity extends FragmentActivity
 
         if (location == null) {
             Toast.makeText(this, "Null location", Toast.LENGTH_LONG).show();
+            return true;
         } else {
             Toast.makeText(this, "Type: " + location.restriction, Toast.LENGTH_LONG).show();
         }
+
+        Log.d(TAG, "Index of Limited: " + mSpotTypes.indexOf(location.restriction));
+
+        if (location.restriction != null &&
+                mSpotTypes != null &&
+                mSpotTypes.contains(location.restriction)) {
+            mSpotTypeSpinner.setSelection(mSpotTypes.indexOf(location.restriction));
+        }
+        Log.d(TAG, "Restriction limit: " + location.limit);
+
+        if (location.restriction.equals("limited") && location.limit != null) {
+            mSpotLimitedLL.setVisibility(View.VISIBLE);
+            mSpotLimitedET.setText(String.valueOf(location.limit));
+        }
+
 
         mSpot.setVisibility(View.VISIBLE);
         mSpot.setClickable(false);
@@ -160,6 +209,25 @@ public class MapsActivity extends FragmentActivity
     @Override
     public void onMapClick(LatLng latLng) {
         mSpot.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+        Toast.makeText(this, "Item selected: " + adapterView.getItemAtPosition(i).toString(), Toast.LENGTH_LONG).show();
+
+
+
+        if (adapterView.getItemAtPosition(i).toString() == "limited") {
+            mSpotLimitedLL.setVisibility(View.VISIBLE);
+        } else {
+            mSpotLimitedLL.setVisibility(View.INVISIBLE);
+        }
+
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> adapterView) {
+
     }
 
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
@@ -203,5 +271,7 @@ public class MapsActivity extends FragmentActivity
 
         }
     }
+
+
 
 }

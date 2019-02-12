@@ -5,12 +5,4 @@ services:
     volumes:
       - ./npm:/root/npm
     ports:
-      - "3000:3000"
-  frontend:
-    build: frontend
-    volumes:
-      - ./frontend/index.html:/static/index.html
-      - ./frontend/script.js:/static/script.js
-      - ./frontend/nginx.conf:/etc/nginx/nginx.conf
-    ports:
       - "80:80"
