@@ -19,6 +19,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -28,6 +29,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,12 +50,13 @@ public class MapsActivity extends FragmentActivity
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
-//    private LinearLayout mSpot;
     private Spinner mSpotTypeSpinner;
     private LinearLayout mSpotLimitedLL;
     private ArrayList<String> mSpotTypes;
     private EditText mSpotLimitedET;
-    private Button mSpotSubmit;
+    private MjestoUtils.Location mCurLocation;
+    private Marker mCurMarker;
+    private Dialog mCurDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,7 +67,6 @@ public class MapsActivity extends FragmentActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-//        mSpot = findViewById(R.id.fl_spot);
         mPopulateProgress = findViewById(R.id.pb_load_populate);
         mPopulateButton = findViewById(R.id.b_populate_map);
         mPopulateButton.setOnClickListener(new View.OnClickListener() {
@@ -72,16 +75,11 @@ public class MapsActivity extends FragmentActivity
                doMjestoGetLocations();
            }
        });
-        mSpotSubmit = findViewById(R.id.b_spot_submit);
-//        mSpotSubmit.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                do MjestoPutLocation();
-//            }
-//        });
+        mCurMarker = null;
+        mCurDialog = null;
 
         mSpotTypes = new ArrayList<>();
-        mSpotTypes.add("unrestricted");
+        mSpotTypes.add("unlimited");
         mSpotTypes.add("limited");
         mSpotTypes.add("restricted");
 
@@ -103,8 +101,6 @@ public class MapsActivity extends FragmentActivity
 
         // Add a marker in Sydney and move the camera
         LatLng corvallis = new LatLng(44.5646, -123.2620);
-        Marker marker = mMap.addMarker(new MarkerOptions().position(corvallis).title("Marker in corvallis"));
-        marker.setTag(null);
 
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapClickListener(this);
@@ -157,6 +153,20 @@ public class MapsActivity extends FragmentActivity
         new MjestoGetLocationsTask().execute(url);
     }
 
+    private void doMjestoPatchLocation(String id, MjestoUtils.Location location) {
+        String body = MjestoUtils.buildJsonFromLocation(location);
+        String url = MjestoUtils.getMjestoLocationsUrlWithID(id);
+        Log.d(TAG, "path url: " + url);
+        new MjestoPatchLocationTask().execute(url, body);
+
+    }
+
+    private void doMjestoPostLocation(MjestoUtils.Location location) {
+        String body = MjestoUtils.buildJsonFromLocation(location);
+        String url = MjestoUtils.getMjestoLocationsUrl();
+        new MjestoPostLocationTask().execute(url, body);
+    }
+
     private void populateMap(MjestoUtils.Location[] locations) {
         for (MjestoUtils.Location location : locations) {
             LatLng coords = new LatLng(location.coordinates.lat, location.coordinates.lng);
@@ -169,61 +179,152 @@ public class MapsActivity extends FragmentActivity
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        MjestoUtils.Location location = (MjestoUtils.Location) marker.getTag();
+        mCurMarker = marker;
+        mCurLocation = (MjestoUtils.Location) marker.getTag();
 
-        openDialog();
+        mCurDialog = openDialog(R.layout.view_spot);
 
-        if (location == null) {
-            Toast.makeText(this, "Null location", Toast.LENGTH_LONG).show();
-            return true;
-        } else {
-            Toast.makeText(this, "Type: " + location.restriction, Toast.LENGTH_LONG).show();
-        }
+        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
+        TextView restriction_tv = mCurDialog.findViewById(R.id.s_spot_type);
+        restriction_tv.setText(mCurLocation.restriction);
 
-        Log.d(TAG, "Index of Limited: " + mSpotTypes.indexOf(location.restriction));
+        TextView limit_tv = mCurDialog.findViewById(R.id.tv_spot_limit);
 
-        if (location.restriction != null &&
-                mSpotTypes != null &&
-                mSpotTypes.contains(location.restriction)) {
-            mSpotTypeSpinner.setSelection(mSpotTypes.indexOf(location.restriction));
-        }
-        Log.d(TAG, "Restriction limit: " + location.limit);
 
-        if (location.restriction.equals("limited") && location.limit != null) {
+        if (mCurLocation.restriction.equals("limited")) {
             mSpotLimitedLL.setVisibility(View.VISIBLE);
-            mSpotLimitedET.setText(String.valueOf(location.limit));
+            if (mCurLocation.limit != null) {
+                limit_tv.setText(String.valueOf(mCurLocation.limit));
+            } else {
+                limit_tv.setText(0);
+            }
+
         }
+
+        TextView editSpot = mCurDialog.findViewById(R.id.tv_edit_spot);
+        editSpot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openEditSpotDialog();
+            }
+        });
+
 
 
         return true;
     }
 
-    public void openDialog() {
+    public void openEditSpotDialog() {
+
+        if (mCurDialog != null) {
+            mCurDialog.dismiss();
+        }
+
+        mCurDialog = openDialog(R.layout.edit_spot);
+
+        mSpotTypeSpinner = mCurDialog.findViewById(R.id.s_spot_type);
+        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
+        mSpotLimitedET = mCurDialog.findViewById(R.id.et_spot);
+        Button spotSubmitB = mCurDialog.findViewById(R.id.b_spot_submit);
+        spotSubmitB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MjestoUtils.Location updateLocation = new MjestoUtils.Location();
+
+                updateLocation.restriction = mSpotTypeSpinner.getSelectedItem().toString();
+
+
+                if (updateLocation.restriction.equals("limited")) {
+                    String limitString = mSpotLimitedET.getText().toString();
+                    if (limitString.equals("") || limitString.equals("0")) {
+                        Toast.makeText(MapsActivity.this, "Must enter a time limit", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    Integer limit = Integer.parseInt(limitString);
+                    Log.d(TAG, "Number of limit: " + limit);
+                    updateLocation.limit = limit;
+                }
+
+
+                doMjestoPatchLocation(mCurLocation._id, updateLocation);
+            }
+        });
+
+        setSpotDialogOptions();
+    }
+
+    public Dialog openDialog(Integer view) {
         final Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.view_more);
+        dialog.setContentView(view);
         dialog.setTitle(R.string.spot_view_more);
-
-        mSpotTypeSpinner = dialog.findViewById(R.id.s_spot_type);
-        mSpotLimitedLL = dialog.findViewById(R.id.ll_spot_limited);
-        mSpotLimitedET = dialog.findViewById(R.id.et_spot);
-
-        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
-        mSpotTypeSpinner.setOnItemSelectedListener(this);
-
-
         dialog.show();
+
+        return dialog;
 
     }
 
+    public void setSpotDialogOptions() {
+        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
+        mSpotTypeSpinner.setOnItemSelectedListener(this);
+
+        if (mCurLocation != null) {
+            if (mCurLocation.restriction != null &&
+                    mSpotTypes != null &&
+                    mSpotTypes.contains(mCurLocation.restriction)) {
+                mSpotTypeSpinner.setSelection(mSpotTypes.indexOf(mCurLocation.restriction));
+            }
+
+            if (mCurLocation.restriction.equals("limited") && mCurLocation.limit != null) {
+                mSpotLimitedLL.setVisibility(View.VISIBLE);
+                mSpotLimitedET.setText(String.valueOf(mCurLocation.limit));
+            }
+        }
+    }
+
     @Override
-    public void onMapClick(LatLng latLng) {
-//        mSpot.setVisibility(View.INVISIBLE);
+    public void onMapClick(final LatLng latLng) {
+        mCurDialog = openDialog(R.layout.edit_spot);
+
+        mCurLocation = null;
+        mSpotTypeSpinner = mCurDialog.findViewById(R.id.s_spot_type);
+        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
+        mSpotLimitedET = mCurDialog.findViewById(R.id.et_spot);
+        Button spotSubmitB = mCurDialog.findViewById(R.id.b_spot_submit);
+        spotSubmitB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MjestoUtils.Location newLocation = new MjestoUtils.Location();
+
+                newLocation.coordinates.lng = latLng.longitude;
+                newLocation.coordinates.lat = latLng.latitude;
+
+                newLocation.restriction = mSpotTypeSpinner.getSelectedItem().toString();
+
+
+                if (newLocation.restriction.equals("limited")) {
+                    String limitString = mSpotLimitedET.getText().toString();
+                    if (limitString.equals("") || limitString.equals("0")) {
+                        Toast.makeText(MapsActivity.this, "Must enter a time limit", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    Integer limit = Integer.parseInt(limitString);
+                    Log.d(TAG, "Number of limit: " + limit);
+                    newLocation.limit = limit;
+                }
+
+
+                doMjestoPostLocation(newLocation);
+            }
+        });
+
+        setSpotDialogOptions();
+
+
     }
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-        Toast.makeText(this, "Item selected: " + adapterView.getItemAtPosition(i).toString(), Toast.LENGTH_LONG).show();
-
+//        Toast.makeText(this, "Item selected: " + adapterView.getItemAtPosition(i).toString(), Toast.LENGTH_LONG).show();
 
 
         if (adapterView.getItemAtPosition(i).toString() == "limited") {
@@ -264,8 +365,6 @@ public class MapsActivity extends FragmentActivity
         @Override
         protected void onPostExecute(String s) {
 
-//            Toast.makeText(getApplication().getBaseContext(), "id: " + locations[0]._id, Toast.LENGTH_LONG).show();
-
             if (s != null) {
                 mPopulateButton.setText("Populate Map");
                 MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(s);
@@ -280,6 +379,100 @@ public class MapsActivity extends FragmentActivity
 
         }
     }
+
+    class MjestoPatchLocationTask extends AsyncTask<String, Void, String> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String url = strings[0];
+            String json = strings[1];
+            String results = null;
+
+            try {
+                results = NetworkUtils.doHttpPatch(url, json);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Log.d(TAG, "Results of PATCH: " + results);
+
+            return results;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+
+            MjestoUtils.Location location = null;
+
+            location = MjestoUtils.getLocationFromJson(s);
+            if (location != null) {
+                mCurLocation = location;
+                mCurMarker.setTag(location);
+                Toast.makeText(MapsActivity.this, "Spot Updated Successfully", Toast.LENGTH_LONG).show();
+                mCurDialog.dismiss();
+            } else {
+                Toast.makeText(MapsActivity.this, "Spot Update Failed", Toast.LENGTH_LONG).show();
+            }
+
+
+
+        }
+    }
+
+    class MjestoPostLocationTask extends AsyncTask<String, Void, String> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String url = strings[0];
+            String json = strings[1];
+            String results = null;
+
+            JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
+            jsonObject.addProperty("type", "Point");
+            json = jsonObject.toString();
+
+            try {
+                results = NetworkUtils.doHttpPost(url, json);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Log.d(TAG, "Results of POST: " + results);
+
+            return results;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+
+            MjestoUtils.Location location = null;
+
+            location = MjestoUtils.getLocationFromJson(s);
+            if (location.errors != null) {
+                Log.d(TAG, location.errors.toString());
+                Toast.makeText(MapsActivity.this, "Spot Update Failed", Toast.LENGTH_LONG).show();
+            }
+            else {
+                mCurLocation = location;
+                LatLng coords = new LatLng(location.coordinates.lat, location.coordinates.lng);
+                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
+                marker.setTag(location);
+                Toast.makeText(MapsActivity.this, "Spot Created Successfully", Toast.LENGTH_LONG).show();
+                mCurDialog.dismiss();
+            }
+        }
+    }
+
 
 
 
