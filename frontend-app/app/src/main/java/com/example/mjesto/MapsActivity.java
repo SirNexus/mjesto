@@ -1,6 +1,7 @@
 package com.example.mjesto;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.AsyncTask;
@@ -11,17 +12,13 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
-import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
-import android.widget.SpinnerAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -50,7 +47,7 @@ public class MapsActivity extends FragmentActivity
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
-    private LinearLayout mSpot;
+//    private LinearLayout mSpot;
     private Spinner mSpotTypeSpinner;
     private LinearLayout mSpotLimitedLL;
     private ArrayList<String> mSpotTypes;
@@ -66,7 +63,7 @@ public class MapsActivity extends FragmentActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        mSpot = findViewById(R.id.fl_spot);
+//        mSpot = findViewById(R.id.fl_spot);
         mPopulateProgress = findViewById(R.id.pb_load_populate);
         mPopulateButton = findViewById(R.id.b_populate_map);
         mPopulateButton.setOnClickListener(new View.OnClickListener() {
@@ -75,9 +72,6 @@ public class MapsActivity extends FragmentActivity
                doMjestoGetLocations();
            }
        });
-        mSpotLimitedLL = findViewById(R.id.ll_spot_limited);
-        mSpotTypeSpinner = findViewById(R.id.s_spot_type);
-        mSpotLimitedET = findViewById(R.id.et_spot);
         mSpotSubmit = findViewById(R.id.b_spot_submit);
 //        mSpotSubmit.setOnClickListener(new View.OnClickListener() {
 //            @Override
@@ -91,8 +85,7 @@ public class MapsActivity extends FragmentActivity
         mSpotTypes.add("limited");
         mSpotTypes.add("restricted");
 
-        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
-        mSpotTypeSpinner.setOnItemSelectedListener(this);
+
 
     }
     /**
@@ -178,6 +171,8 @@ public class MapsActivity extends FragmentActivity
     public boolean onMarkerClick(Marker marker) {
         MjestoUtils.Location location = (MjestoUtils.Location) marker.getTag();
 
+        openDialog();
+
         if (location == null) {
             Toast.makeText(this, "Null location", Toast.LENGTH_LONG).show();
             return true;
@@ -200,15 +195,29 @@ public class MapsActivity extends FragmentActivity
         }
 
 
-        mSpot.setVisibility(View.VISIBLE);
-        mSpot.setClickable(false);
-
         return true;
+    }
+
+    public void openDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.view_more);
+        dialog.setTitle(R.string.spot_view_more);
+
+        mSpotTypeSpinner = dialog.findViewById(R.id.s_spot_type);
+        mSpotLimitedLL = dialog.findViewById(R.id.ll_spot_limited);
+        mSpotLimitedET = dialog.findViewById(R.id.et_spot);
+
+        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
+        mSpotTypeSpinner.setOnItemSelectedListener(this);
+
+
+        dialog.show();
+
     }
 
     @Override
     public void onMapClick(LatLng latLng) {
-        mSpot.setVisibility(View.INVISIBLE);
+//        mSpot.setVisibility(View.INVISIBLE);
     }
 
     @Override

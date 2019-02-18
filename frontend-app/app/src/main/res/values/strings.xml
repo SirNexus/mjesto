@@ -4,5 +4,6 @@
     <string name="spot_view_more">Spot Info</string>
     <string name="spot_label_type">Type: </string>
     <string name="spot_label_limit">Limit: </string>
+    <string name="submit">Submit</string>
 
 </resources>
