@@ -6,11 +6,17 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
-import android.support.v4.app.FragmentActivity;
+import android.support.design.widget.NavigationView;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -35,19 +41,21 @@ import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class MapsActivity extends FragmentActivity
+public class MapsActivity extends AppCompatActivity
         implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
         OnMapReadyCallback,
-        AdapterView.OnItemSelectedListener {
+        AdapterView.OnItemSelectedListener,
+        NavigationView.OnNavigationItemSelectedListener {
 
     private static final String TAG = MapsActivity.class.getSimpleName();
 
 
     private GoogleMap mMap;
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
+    private DrawerLayout mDrawyerLayout;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
     private Spinner mSpotTypeSpinner;
@@ -67,6 +75,7 @@ public class MapsActivity extends FragmentActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        mDrawyerLayout = findViewById(R.id.drawer);
         mPopulateProgress = findViewById(R.id.pb_load_populate);
         mPopulateButton = findViewById(R.id.b_populate_map);
         mPopulateButton.setOnClickListener(new View.OnClickListener() {
@@ -83,7 +92,18 @@ public class MapsActivity extends FragmentActivity
         mSpotTypes.add("limited");
         mSpotTypes.add("restricted");
 
+//        DrawerLayout drawerLayout = findViewById(R.id.maps_drawer);
 
+        Toolbar toolbar = findViewById(R.id.maps_toolbar);
+        setSupportActionBar(toolbar);
+
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
+        actionBar.setHomeAsUpIndicator(R.drawable.ic_menu);
+        actionBar.setDisplayShowTitleEnabled(false);
+
+        NavigationView navigationView = findViewById(R.id.maps_nav_drawer);
+        navigationView.setNavigationItemSelectedListener(this);
 
     }
     /**
@@ -130,6 +150,17 @@ public class MapsActivity extends FragmentActivity
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                mDrawyerLayout.openDrawer(Gravity.START);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -338,6 +369,11 @@ public class MapsActivity extends FragmentActivity
     @Override
     public void onNothingSelected(AdapterView<?> adapterView) {
 
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
+        return NavigationViewUtils.handleOnNavigationItemSelected(menuItem, this);
     }
 
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
