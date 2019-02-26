@@ -5,19 +5,19 @@ import android.app.Dialog;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.AsyncTask;
-import android.support.annotation.NonNull;
-import android.support.design.widget.NavigationView;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -28,6 +28,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mjesto.Utils.MjestoUtils;
+import com.example.mjesto.Utils.NetworkUtils;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -41,18 +43,16 @@ import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class MapsActivity extends AppCompatActivity
-        implements GoogleMap.OnMyLocationButtonClickListener,
+public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
         OnMapReadyCallback,
-        AdapterView.OnItemSelectedListener,
-        NavigationView.OnNavigationItemSelectedListener {
+        AdapterView.OnItemSelectedListener {
 
-    private static final String TAG = MapsActivity.class.getSimpleName();
+    private static final String TAG = MapsFragment.class.getSimpleName();
 
-
+    private View mView;
     private GoogleMap mMap;
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
     private DrawerLayout mDrawyerLayout;
@@ -66,24 +66,25 @@ public class MapsActivity extends AppCompatActivity
     private Marker mCurMarker;
     private Dialog mCurDialog;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        mView = inflater.inflate(R.layout.fragment_maps, container, false);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+        SupportMapFragment mapFragment = (SupportMapFragment) this.getChildFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        mDrawyerLayout = findViewById(R.id.drawer);
-        mPopulateProgress = findViewById(R.id.pb_load_populate);
-        mPopulateButton = findViewById(R.id.b_populate_map);
+        mDrawyerLayout = mView.findViewById(R.id.drawer);
+        mPopulateProgress = mView.findViewById(R.id.pb_load_populate);
+        mPopulateButton = mView.findViewById(R.id.b_populate_map);
         mPopulateButton.setOnClickListener(new View.OnClickListener() {
-           @Override
-           public void onClick(View view) {
-               doMjestoGetLocations();
-           }
-       });
+            @Override
+            public void onClick(View view) {
+                doMjestoGetLocations();
+            }
+        });
         mCurMarker = null;
         mCurDialog = null;
 
@@ -92,20 +93,10 @@ public class MapsActivity extends AppCompatActivity
         mSpotTypes.add("limited");
         mSpotTypes.add("restricted");
 
-//        DrawerLayout drawerLayout = findViewById(R.id.maps_drawer);
 
-        Toolbar toolbar = findViewById(R.id.maps_toolbar);
-        setSupportActionBar(toolbar);
-
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setHomeAsUpIndicator(R.drawable.ic_menu);
-        actionBar.setDisplayShowTitleEnabled(false);
-
-        NavigationView navigationView = findViewById(R.id.maps_nav_drawer);
-        navigationView.setNavigationItemSelectedListener(this);
-
+        return mView;
     }
+
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -127,12 +118,12 @@ public class MapsActivity extends AppCompatActivity
 
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         } else {
-            Toast.makeText(this, "Don't have permission", Toast.LENGTH_LONG).show();
-            ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
+            Toast.makeText(getActivity(), "Don't have permission", Toast.LENGTH_LONG).show();
+            ActivityCompat.requestPermissions(getActivity(), new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
                     FINE_LOCATION_PERMISSION_REQUEST );
         }
         mMap.setOnMyLocationButtonClickListener(this);
@@ -167,12 +158,12 @@ public class MapsActivity extends AppCompatActivity
     @NonNull
     @Override
     public void onMyLocationClick(@NonNull Location location) {
-        Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
+        Toast.makeText(getActivity(), "Current location:\n" + location, Toast.LENGTH_LONG).show();
     }
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), "MyLocation button clicked", Toast.LENGTH_SHORT).show();
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
         return false;
@@ -268,7 +259,7 @@ public class MapsActivity extends AppCompatActivity
                 if (updateLocation.restriction.equals("limited")) {
                     String limitString = mSpotLimitedET.getText().toString();
                     if (limitString.equals("") || limitString.equals("0")) {
-                        Toast.makeText(MapsActivity.this, "Must enter a time limit", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
                         return;
                     }
                     Integer limit = Integer.parseInt(limitString);
@@ -285,7 +276,7 @@ public class MapsActivity extends AppCompatActivity
     }
 
     public Dialog openDialog(Integer view) {
-        final Dialog dialog = new Dialog(this);
+        final Dialog dialog = new Dialog(getActivity());
         dialog.setContentView(view);
         dialog.setTitle(R.string.spot_view_more);
         dialog.show();
@@ -295,7 +286,7 @@ public class MapsActivity extends AppCompatActivity
     }
 
     public void setSpotDialogOptions() {
-        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
+        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(getActivity(), R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
         mSpotTypeSpinner.setOnItemSelectedListener(this);
 
         if (mCurLocation != null) {
@@ -335,7 +326,7 @@ public class MapsActivity extends AppCompatActivity
                 if (newLocation.restriction.equals("limited")) {
                     String limitString = mSpotLimitedET.getText().toString();
                     if (limitString.equals("") || limitString.equals("0")) {
-                        Toast.makeText(MapsActivity.this, "Must enter a time limit", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
                         return;
                     }
                     Integer limit = Integer.parseInt(limitString);
@@ -369,11 +360,6 @@ public class MapsActivity extends AppCompatActivity
     @Override
     public void onNothingSelected(AdapterView<?> adapterView) {
 
-    }
-
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
-        return NavigationViewUtils.handleOnNavigationItemSelected(menuItem, this);
     }
 
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
@@ -449,10 +435,10 @@ public class MapsActivity extends AppCompatActivity
             if (location != null) {
                 mCurLocation = location;
                 mCurMarker.setTag(location);
-                Toast.makeText(MapsActivity.this, "Spot Updated Successfully", Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), "Spot Updated Successfully", Toast.LENGTH_LONG).show();
                 mCurDialog.dismiss();
             } else {
-                Toast.makeText(MapsActivity.this, "Spot Update Failed", Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), "Spot Update Failed", Toast.LENGTH_LONG).show();
             }
 
 
@@ -496,20 +482,18 @@ public class MapsActivity extends AppCompatActivity
             location = MjestoUtils.getLocationFromJson(s);
             if (location.errors != null) {
                 Log.d(TAG, location.errors.toString());
-                Toast.makeText(MapsActivity.this, "Spot Update Failed", Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), "Spot Update Failed", Toast.LENGTH_LONG).show();
             }
             else {
                 mCurLocation = location;
                 LatLng coords = new LatLng(location.coordinates.lat, location.coordinates.lng);
                 Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
                 marker.setTag(location);
-                Toast.makeText(MapsActivity.this, "Spot Created Successfully", Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), "Spot Created Successfully", Toast.LENGTH_LONG).show();
                 mCurDialog.dismiss();
             }
         }
     }
-
-
 
 
 }

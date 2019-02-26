@@ -1,9 +1,9 @@
 package com.example.mjesto;
 
-import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -11,22 +11,27 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
+import android.widget.Toast;
 
-public class WelcomeActivity extends AppCompatActivity implements View.OnClickListener,
+public class MainActivity extends AppCompatActivity implements
         NavigationView.OnNavigationItemSelectedListener {
+
+    private String TAG = MainActivity.class.getSimpleName();
 
     private DrawerLayout mDrawerLayout;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_welcome);
+        setContentView(R.layout.navigation_base);
+
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.replace(R.id.fragment_container, new WelcomeFragment());
+        fragmentTransaction.commit();
 
         mDrawerLayout = findViewById(R.id.drawer);
 
-        Toolbar toolbar = findViewById(R.id.welcome_toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         ActionBar actionBar = getSupportActionBar();
@@ -34,25 +39,9 @@ public class WelcomeActivity extends AppCompatActivity implements View.OnClickLi
         actionBar.setHomeAsUpIndicator(R.drawable.ic_menu);
         actionBar.setDisplayShowTitleEnabled(false);
 
-        NavigationView navigationView = findViewById(R.id.welcome_nav_drawer);
+        NavigationView navigationView = findViewById(R.id.nav_drawer);
         navigationView.setNavigationItemSelectedListener(this);
 
-        Button parkButton = findViewById(R.id.b_park);
-        parkButton.setOnClickListener(this);
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.b_park:
-                openMap();
-                return;
-        }
-    }
-
-    public void openMap() {
-        Intent intent = new Intent(this, MapsActivity.class);
-        startActivity(intent);
     }
 
     @Override
@@ -68,6 +57,17 @@ public class WelcomeActivity extends AppCompatActivity implements View.OnClickLi
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
-        return NavigationViewUtils.handleOnNavigationItemSelected(menuItem, this);
+        mDrawerLayout.closeDrawers();
+        switch (menuItem.getItemId()) {
+            case R.id.nav_search:
+                Toast.makeText(this, "Profile Clicked", Toast.LENGTH_LONG).show();
+                FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                fragmentTransaction.replace(R.id.fragment_container, new ProfileFragment(), "New Fragment");
+                fragmentTransaction.addToBackStack("Profile Page");
+                fragmentTransaction.commit();
+                return true;
+            default:
+                return false;
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.mjesto;
+package com.example.mjesto.Utils;
 
 import android.net.Uri;
 import android.util.Log;
