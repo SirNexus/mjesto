@@ -32,14 +32,9 @@ var LocationSchema = new Schema({
         type: Number,
     },
     coordinates: {
-        lat: {
-            type: Number,
-            required: "Please enter a latitude",
-        },
-        lng: {
-            type: Number,
-            required: "Please enter a longitude"
-        }
+        type: [Number],
+        required: "Please enter a longitude, latitude",
+        validate: [validateCoordinates, "Coordinates not valid [(longitude, latitude)]"]
     }
 });
 
@@ -64,6 +59,16 @@ function validateLocation (val) {
         return true;
     }
     return true
+}
+
+function validateCoordinates (val) {
+    if (val.length != 2) {
+        return false;
+    }
+    if (Math.abs(val[0]) > 180 || Math.abs(val[1]) > 90) {
+        return false;
+    }
+    return true;
 }
 
 function validateArea(val) {

@@ -13,11 +13,14 @@ module.exports = app => {
         .delete(deleteUserByID),
     app.route("/locations")
         .post(insertLocation)
-        .get(getLocations)
+        // TODO: Remove get all locations, replace with near coordinates
+        .get(getLocations),
     app.route("/locations/:locationID")
         .get(getLocationByID)
         .delete(deleteLocationByID)
         .patch(updateLocationByID),
+    app.route("/locations/:longitude/:latitude/:radius")
+        .get(getLocationsNearCoords),
     app.route("/areas")
         .post(insertArea)
 };
@@ -62,15 +65,13 @@ function deleteUserByID(req, res) {
 var Location = Schema.Locations;
 
 function getLocations(req, res) {
-    console.log("In Get Location Function")
     Location.find({}, function(err, location) {
         if (err) res.status(400).send(err);
         res.json(location);
     });
 }
 
-function insertLocation(req, res) {
-    console.log("req body: " + util.inspect(req.body));    
+function insertLocation(req, res) { 
     var new_location = new Location(req.body);
 
     console.log(new_location);
@@ -82,17 +83,29 @@ function insertLocation(req, res) {
 }
 
 function getLocationByID(req, res) {
-    console.log("req body: " + util.inspect(req.body));
-
     Location.findById(req.params.locationID, function(err, location) {
         if (err) res.status(400).send(err);
         res.json(location);
     })
 }
 
-function deleteLocationByID(req, res) {
-    console.log("req body: " + util.inspect(req.body));
+function getLocationsNearCoords(req, res) {
+    Location.find({
+        coordinates: {
+            $near: {
+                $maxDistance: req.params.radius,
+                $geometry: {
+                    type: "Point",
+                    coordinates: [req.params.longitude, req.params.latitude]
+                }
+            }
+        }}, function (err, locations) {
+            if (err) res.status(400).send(err);
+            res.json(locations);
+        });
+}
 
+function deleteLocationByID(req, res) {
     Location.findByIdAndDelete(req.params.locationID, function(err) {
         if (err) res.status(400).send(err);
         res.json("Location Delete Successful");
@@ -101,8 +114,6 @@ function deleteLocationByID(req, res) {
 }
 
 function updateLocationByID(req, res) {
-    console.log("req body: " + util.inspect(req.body));
-
     Location.findByIdAndUpdate(req.params.locationID, req.body, {new: true}, function(err, location) {
         if (err) res.status(400).send(err);
         res.json(location);
