@@ -19,14 +19,17 @@ import android.view.Gravity;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import java.io.Serializable;
+
 public class MainActivity extends AppCompatActivity implements
-        NavigationView.OnNavigationItemSelectedListener {
+        NavigationView.OnNavigationItemSelectedListener,
+        Serializable {
 
     private final String TAG = MainActivity.class.getSimpleName();
-    public static final String MAIN_VIEW_MODEL_ARG = "MainViewModel.java";
+    public static final String MAIN_ACTIVITY_ARG= "MainActivity.this";
 
     private DrawerLayout mDrawerLayout;
-    private MainViewModel mViewModel;
+    private static MainViewModel mViewModel;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -34,28 +37,11 @@ public class MainActivity extends AppCompatActivity implements
         setContentView(R.layout.navigation_base);
 
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-        mViewModel.getFragment().observe(this, new Observer<Fragment>() {
-            @Override
-            public void onChanged(@Nullable Fragment fragment) {
-                if (fragment == null) {
-                    Log.d(TAG, "Fragment is NULL");
-                    Fragment welcomeFragment = new WelcomeFragment();
-                    Bundle bundle = new Bundle();
-                    bundle.putSerializable(MAIN_VIEW_MODEL_ARG, mViewModel);
-                    welcomeFragment.setArguments(bundle);
-                    mViewModel.setFragment(welcomeFragment);
-                    return;
-                }
-                else {
-                    FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-                    fragmentTransaction.replace(R.id.fragment_container, fragment);
-                    fragmentTransaction.addToBackStack("New Fragment");
-                    fragmentTransaction.commit();
-                }
-            }
-        });
-
         mDrawerLayout = findViewById(R.id.drawer);
+
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.replace(R.id.fragment_container, new WelcomeFragment());
+        fragmentTransaction.commit();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -67,7 +53,26 @@ public class MainActivity extends AppCompatActivity implements
 
         NavigationView navigationView = findViewById(R.id.nav_drawer);
         navigationView.setNavigationItemSelectedListener(this);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mViewModel.getFragment().observe(this, new Observer<Fragment>() {
+            @Override
+            public void onChanged(@Nullable Fragment fragment) {
+                if (fragment == null) {
+                    Log.d(TAG, "Fragment is NULL");
+                    return;
+                }
+                else {
+                    FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                    fragmentTransaction.replace(R.id.fragment_container, fragment);
+                    fragmentTransaction.addToBackStack("New Fragment");
+                    fragmentTransaction.commit();
+                }
+            }
+        });
     }
 
     @Override
@@ -87,14 +92,14 @@ public class MainActivity extends AppCompatActivity implements
         switch (menuItem.getItemId()) {
             case R.id.nav_search:
                 Toast.makeText(this, "Profile Clicked", Toast.LENGTH_LONG).show();
-                Fragment fragment = new ProfileFragment();
-                Bundle bundle = new Bundle();
-                bundle.putSerializable(MAIN_VIEW_MODEL_ARG, mViewModel);
-                fragment.setArguments(bundle);
-                mViewModel.setFragment(fragment);
+                mViewModel.setFragment(new ProfileFragment());
                 return true;
             default:
                 return false;
         }
+    }
+
+    public static void updateFragment(Fragment fragment) {
+        mViewModel.setFragment(fragment);
     }
 }

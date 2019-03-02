@@ -7,7 +7,7 @@ import android.support.v4.app.Fragment;
 
 import java.io.Serializable;
 
-public class MainViewModel extends ViewModel implements Serializable {
+public class MainViewModel extends ViewModel {
 
     public MutableLiveData<Fragment> vm_fragment;
 
