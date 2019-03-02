@@ -191,7 +191,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     private void populateMap(MjestoUtils.Location[] locations) {
         for (MjestoUtils.Location location : locations) {
-            LatLng coords = new LatLng(location.coordinates.lat, location.coordinates.lng);
+            LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
 
             Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
             marker.setTag(location);
@@ -317,8 +317,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             public void onClick(View view) {
                 MjestoUtils.Location newLocation = new MjestoUtils.Location();
 
-                newLocation.coordinates.lng = latLng.longitude;
-                newLocation.coordinates.lat = latLng.latitude;
+                newLocation.coordinates.add(latLng.longitude);
+                newLocation.coordinates.add(latLng.latitude);
 
                 newLocation.restriction = mSpotTypeSpinner.getSelectedItem().toString();
 
@@ -486,7 +486,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             }
             else {
                 mCurLocation = location;
-                LatLng coords = new LatLng(location.coordinates.lat, location.coordinates.lng);
+                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
                 Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
                 marker.setTag(location);
                 Toast.makeText(getActivity(), "Spot Created Successfully", Toast.LENGTH_LONG).show();

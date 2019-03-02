@@ -1,5 +1,6 @@
 package com.example.mjesto;
 
+import android.arch.lifecycle.ViewModel;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -39,10 +40,8 @@ public class WelcomeFragment extends Fragment implements View.OnClickListener {
     }
 
     public void openMap() {
-        FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_container, new MapsFragment(), "New Fragment");
-        fragmentTransaction.addToBackStack("Welcome Page");
-        fragmentTransaction.commit();
+        MainViewModel viewModel = (MainViewModel) getArguments().getSerializable(MainActivity.MAIN_VIEW_MODEL_ARG);
 
+        viewModel.setFragment(new MapsFragment());
     }
 }

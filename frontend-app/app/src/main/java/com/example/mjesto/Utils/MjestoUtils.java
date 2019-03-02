@@ -6,26 +6,23 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayList;
+
 public class MjestoUtils {
     private final static String TAG = MjestoUtils.class.getSimpleName();
 
     private final static String MJESTO_BASE_URL = "http://mjesto.io";
     private final static String MJESTO_LOCATIONS_URL = "locations";
 
-    public static class LatLngCustom {
-        public double lat;
-        public double lng;
-    }
-
     public static class Location {
         public String _id;
-        public LatLngCustom coordinates;
+        public ArrayList<Double> coordinates;
         public String restriction;
         public Integer limit;
         public JsonObject errors;
 
         public Location() {
-            coordinates = new LatLngCustom();
+            coordinates = new ArrayList<>();
         }
     }
 

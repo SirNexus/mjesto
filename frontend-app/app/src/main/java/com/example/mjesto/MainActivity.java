@@ -1,14 +1,20 @@
 package com.example.mjesto;
 
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProvider;
+import android.arch.lifecycle.ViewModelProviders;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -16,18 +22,38 @@ import android.widget.Toast;
 public class MainActivity extends AppCompatActivity implements
         NavigationView.OnNavigationItemSelectedListener {
 
-    private String TAG = MainActivity.class.getSimpleName();
+    private final String TAG = MainActivity.class.getSimpleName();
+    public static final String MAIN_VIEW_MODEL_ARG = "MainViewModel.java";
 
     private DrawerLayout mDrawerLayout;
+    private MainViewModel mViewModel;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.navigation_base);
 
-        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_container, new WelcomeFragment());
-        fragmentTransaction.commit();
+        mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        mViewModel.getFragment().observe(this, new Observer<Fragment>() {
+            @Override
+            public void onChanged(@Nullable Fragment fragment) {
+                if (fragment == null) {
+                    Log.d(TAG, "Fragment is NULL");
+                    Fragment welcomeFragment = new WelcomeFragment();
+                    Bundle bundle = new Bundle();
+                    bundle.putSerializable(MAIN_VIEW_MODEL_ARG, mViewModel);
+                    welcomeFragment.setArguments(bundle);
+                    mViewModel.setFragment(welcomeFragment);
+                    return;
+                }
+                else {
+                    FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                    fragmentTransaction.replace(R.id.fragment_container, fragment);
+                    fragmentTransaction.addToBackStack("New Fragment");
+                    fragmentTransaction.commit();
+                }
+            }
+        });
 
         mDrawerLayout = findViewById(R.id.drawer);
 
@@ -61,10 +87,11 @@ public class MainActivity extends AppCompatActivity implements
         switch (menuItem.getItemId()) {
             case R.id.nav_search:
                 Toast.makeText(this, "Profile Clicked", Toast.LENGTH_LONG).show();
-                FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.fragment_container, new ProfileFragment(), "New Fragment");
-                fragmentTransaction.addToBackStack("Profile Page");
-                fragmentTransaction.commit();
+                Fragment fragment = new ProfileFragment();
+                Bundle bundle = new Bundle();
+                bundle.putSerializable(MAIN_VIEW_MODEL_ARG, mViewModel);
+                fragment.setArguments(bundle);
+                mViewModel.setFragment(fragment);
                 return true;
             default:
                 return false;
