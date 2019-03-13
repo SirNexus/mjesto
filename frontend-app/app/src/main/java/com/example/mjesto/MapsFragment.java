@@ -35,6 +35,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.JsonObject;
@@ -47,6 +48,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
+        GoogleMap.OnCameraIdleListener,
         OnMapReadyCallback,
         AdapterView.OnItemSelectedListener {
 
@@ -117,6 +119,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mMap.setOnMapClickListener(this);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
+        mMap.setOnCameraIdleListener(this);
+
 
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -178,7 +182,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private void doMjestoPatchLocation(String id, MjestoUtils.Location location) {
         String body = MjestoUtils.buildJsonFromLocation(location);
         String url = MjestoUtils.getMjestoLocationsUrlWithID(id);
-        Log.d(TAG, "path url: " + url);
         new MjestoPatchLocationTask().execute(url, body);
 
     }
@@ -254,6 +257,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 MjestoUtils.Location updateLocation = new MjestoUtils.Location();
 
                 updateLocation.restriction = mSpotTypeSpinner.getSelectedItem().toString();
+                // Set to null to prevent being added to json for PATCH
+                updateLocation.coordinates = null;
 
 
                 if (updateLocation.restriction.equals("limited")) {
@@ -362,6 +367,29 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     }
 
+    @Override
+    public void onCameraIdle() {
+        Toast.makeText(getActivity(), "Camera Idle", Toast.LENGTH_SHORT).show();
+        LatLngBounds latLngBounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+        Double distance = getDistanceFromBounds(latLngBounds);
+
+        LatLng position = mMap.getCameraPosition().target;
+        // 111,111 used as dirty conversion from coordinates to meters
+        String url = MjestoUtils.getMjestoLocationsUrl(
+                Double.toString(position.longitude),
+                Double.toString(position.latitude),
+                Double.toString(distance / 2 * 25000));
+
+        Log.d(TAG, "Geoquery: " + url);
+        new MjestoGetLocationsTask().execute(url);
+    }
+
+    public double getDistanceFromBounds(LatLngBounds latLngBounds) {
+        return Math.sqrt(
+                (latLngBounds.northeast.latitude - latLngBounds.southwest.latitude)
+                + (latLngBounds.northeast.longitude - latLngBounds.southwest.longitude));
+    }
+
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
 
         @Override
@@ -386,6 +414,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         @Override
         protected void onPostExecute(String s) {
+            Log.d(TAG, "Get response: " + s);
 
             if (s != null) {
                 mPopulateButton.setText("Populate Map");

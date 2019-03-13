@@ -34,6 +34,17 @@ public class MjestoUtils {
                 .toString();
     }
 
+    public static String getMjestoLocationsUrl(String longitude, String latitude, String distance) {
+        return Uri.parse(MJESTO_BASE_URL).buildUpon()
+                .appendPath(MJESTO_LOCATIONS_URL)
+                .appendPath(longitude)
+                .appendPath(latitude)
+                .appendPath(distance)
+                .build()
+                .toString();
+
+    }
+
     public static String getMjestoLocationsUrlWithID(String id) {
         return Uri.parse(getMjestoLocationsUrl()).buildUpon()
                 .appendPath(id)
@@ -54,7 +65,7 @@ public class MjestoUtils {
 
     public static String buildJsonFromLocation(Location location){
         Gson gson = new Gson();
-        String json = gson.toJson(location);
+        String json = gson.toJson(location, Location.class);
         Log.d(TAG, "json from location: " + json);
         return json;
     }

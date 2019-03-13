@@ -53,11 +53,7 @@ public class MainActivity extends AppCompatActivity implements
 
         NavigationView navigationView = findViewById(R.id.nav_drawer);
         navigationView.setNavigationItemSelectedListener(this);
-    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
         mViewModel.getFragment().observe(this, new Observer<Fragment>() {
             @Override
             public void onChanged(@Nullable Fragment fragment) {
@@ -66,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements
                     return;
                 }
                 else {
+
                     FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
                     fragmentTransaction.replace(R.id.fragment_container, fragment);
                     fragmentTransaction.addToBackStack("New Fragment");
@@ -73,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         });
+
     }
 
     @Override

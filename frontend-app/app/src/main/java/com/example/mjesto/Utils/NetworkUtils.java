@@ -1,5 +1,7 @@
 package com.example.mjesto.Utils;
 
+import android.util.Log;
+
 import java.io.IOException;
 
 import okhttp3.MediaType;
@@ -9,6 +11,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class NetworkUtils {
+
+    private static final String TAG = NetworkUtils.class.getSimpleName();
 
     private static final OkHttpClient mHTTPClient = new OkHttpClient();
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -27,6 +31,7 @@ public class NetworkUtils {
     public static String doHttpPatch(String url, String json) throws IOException {
         RequestBody body = RequestBody.create(JSON, json);
         Request req = new Request.Builder().url(url).patch(body).build();
+        Log.d(TAG, "Patch Request: " + body.toString());
         Response res = mHTTPClient.newCall(req).execute();
         try {
             return res.body().string();
