@@ -34,6 +34,7 @@ var LocationSchema = new Schema({
     coordinates: {
         type: [Number],
         required: "Please enter a longitude, latitude",
+        index: "2dsphere",
         validate: [validateCoordinates, "Coordinates not valid [(longitude, latitude)]"]
     }
 });
