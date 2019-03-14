@@ -26,7 +26,6 @@ public class MainActivity extends AppCompatActivity implements
         Serializable {
 
     private final String TAG = MainActivity.class.getSimpleName();
-    public static final String MAIN_ACTIVITY_ARG= "MainActivity.this";
 
     private DrawerLayout mDrawerLayout;
     private static MainViewModel mViewModel;
@@ -62,7 +61,6 @@ public class MainActivity extends AppCompatActivity implements
                     return;
                 }
                 else {
-
                     FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
                     fragmentTransaction.replace(R.id.fragment_container, fragment);
                     fragmentTransaction.addToBackStack("New Fragment");
@@ -71,6 +69,12 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        mViewModel.setTAG("");
     }
 
     @Override
@@ -90,14 +94,14 @@ public class MainActivity extends AppCompatActivity implements
         switch (menuItem.getItemId()) {
             case R.id.nav_search:
                 Toast.makeText(this, "Profile Clicked", Toast.LENGTH_LONG).show();
-                mViewModel.setFragment(new ProfileFragment());
+                mViewModel.setFragment(new ProfileFragment(), "profile");
                 return true;
             default:
                 return false;
         }
     }
 
-    public static void updateFragment(Fragment fragment) {
-        mViewModel.setFragment(fragment);
+    public static void updateFragment(Fragment fragment, String tag) {
+        mViewModel.setFragment(fragment, tag);
     }
 }

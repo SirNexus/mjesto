@@ -44,6 +44,6 @@ public class WelcomeFragment extends Fragment implements View.OnClickListener {
     }
 
     public void openMap() {
-        MainActivity.updateFragment(new MapsFragment());
+        MainActivity.updateFragment(new MapsFragment(), "maps");
     }
 }
