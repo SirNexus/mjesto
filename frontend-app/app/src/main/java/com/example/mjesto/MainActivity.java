@@ -1,14 +1,16 @@
 package com.example.mjesto;
 
+import android.Manifest;
 import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
-import android.provider.ContactsContract;
+import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +21,9 @@ import android.view.Gravity;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.example.mjesto.Fragments.ProfileFragment;
+import com.example.mjesto.Fragments.WelcomeFragment;
+
 import java.io.Serializable;
 
 public class MainActivity extends AppCompatActivity implements
@@ -26,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements
         Serializable {
 
     private final String TAG = MainActivity.class.getSimpleName();
+    private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
 
     private DrawerLayout mDrawerLayout;
     private static MainViewModel mViewModel;
@@ -69,7 +75,16 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Don't have permission", Toast.LENGTH_LONG).show();
+            ActivityCompat.requestPermissions(this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
+                    FINE_LOCATION_PERMISSION_REQUEST );
+        }
+
     }
+
+
 
     @Override
     public void onBackPressed() {

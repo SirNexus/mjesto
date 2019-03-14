@@ -1,4 +1,4 @@
-package com.example.mjesto;
+package com.example.mjesto.Fragments;
 
 import android.Manifest;
 import android.app.Dialog;
@@ -8,7 +8,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -28,6 +27,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mjesto.MainActivity;
+import com.example.mjesto.R;
 import com.example.mjesto.Utils.MjestoUtils;
 import com.example.mjesto.Utils.NetworkUtils;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -50,7 +51,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         GoogleMap.OnMapClickListener,
         GoogleMap.OnCameraIdleListener,
         OnMapReadyCallback,
-        AdapterView.OnItemSelectedListener {
+        AdapterView.OnItemSelectedListener,
+        View.OnClickListener {
 
     private static final String TAG = MapsFragment.class.getSimpleName();
 
@@ -127,26 +129,13 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             mMap.setMyLocationEnabled(true);
         } else {
             Toast.makeText(getActivity(), "Don't have permission", Toast.LENGTH_LONG).show();
-            ActivityCompat.requestPermissions(getActivity(), new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
-                    FINE_LOCATION_PERMISSION_REQUEST );
         }
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
 
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode){
-            case FINE_LOCATION_PERMISSION_REQUEST:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mMap.setMyLocationEnabled(true);
-                }
-            default:
-                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        }
-    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -206,14 +195,14 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     public boolean onMarkerClick(Marker marker) {
         mCurMarker = marker;
         mCurLocation = (MjestoUtils.Location) marker.getTag();
-
         mCurDialog = openDialog(R.layout.view_spot);
 
         mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
         TextView restriction_tv = mCurDialog.findViewById(R.id.s_spot_type);
         restriction_tv.setText(mCurLocation.restriction);
-
         TextView limit_tv = mCurDialog.findViewById(R.id.tv_spot_limit);
+        Button parkButton = mCurDialog.findViewById(R.id.b_spot_park);
+        parkButton.setOnClickListener(this);
 
 
         if (mCurLocation.restriction.equals("limited")) {
@@ -351,19 +340,15 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-//        Toast.makeText(this, "Item selected: " + adapterView.getItemAtPosition(i).toString(), Toast.LENGTH_LONG).show();
-
-
         if (adapterView.getItemAtPosition(i).toString() == "limited") {
             mSpotLimitedLL.setVisibility(View.VISIBLE);
         } else {
             mSpotLimitedLL.setVisibility(View.INVISIBLE);
         }
-
     }
 
     @Override
-    public void onNothingSelected(AdapterView<?> adapterView) {
+    public void onNothingSelected(AdapterView<?> parent) {
 
     }
 
@@ -388,6 +373,17 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         return Math.sqrt(
                 (latLngBounds.northeast.latitude - latLngBounds.southwest.latitude)
                 + (latLngBounds.northeast.longitude - latLngBounds.southwest.longitude));
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.b_spot_park:
+                mCurDialog.dismiss();
+                MainActivity.updateFragment(new ParkedFragment(), "parked");
+                break;
+
+        }
     }
 
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
