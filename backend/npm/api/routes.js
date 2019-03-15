@@ -21,6 +21,11 @@ module.exports = app => {
         .patch(updateLocationByID),
     app.route("/locations/:longitude/:latitude/:radius")
         .get(getLocationsNearCoords),
+    app.route("/park")
+        .post(parkUser)
+        .get(getParked),
+    app.route("/park/:userID")
+        .get(getUserParked);
     app.route("/areas")
         .post(insertArea)
 };
@@ -71,7 +76,7 @@ function getLocations(req, res) {
     });
 }
 
-function insertLocation(req, res) { 
+function insertLocation(req, res) {
     var new_location = new Location(req.body);
 
     console.log(new_location);
@@ -119,6 +124,43 @@ function updateLocationByID(req, res) {
         res.json(location);
     });
 }
+
+
+// ---------------- Parked-related functions -------------------
+
+var Parked = Schema.Parked;
+
+function parkUser(req, res) {
+
+    var options = {
+        upsert: true,
+        new: true
+    }
+
+    Parked.findOneAndUpdate({user: req.body.user},
+        req.body, options, function(err, parked)
+    {
+        if (err) res.status(400).send(err);
+        res.json(parked);
+    });
+
+}
+
+function getParked(req, res) {
+    Parked.find({}, function(err, parked) {
+        if (err) res.status(400).send(err);
+        res.json(parked);
+    });
+}
+
+function getUserParked(req, res) {
+    Parked.findOne({user: req.params.userID}, function (err, parked) {
+        if (err) res.status(400).send(err);
+        res.json(parked);
+    });
+
+}
+
 
 // ---------------- Area-related functions ---------------------
 var Area = Schema.Areas;

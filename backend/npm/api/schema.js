@@ -9,7 +9,20 @@ var UserSchema = new Schema({
     created_date: {
         type: Date,
         default: Date.now()
+    }
+});
+
+var ParkedSchema = new Schema({
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: 'UserSchema',
+        required: true
     },
+    location: {
+        type: Schema.Types.ObjectId,
+        ref: 'LocationSchema',
+        required: true
+    }
 });
 
 var LocationSchema = new Schema({
@@ -83,5 +96,6 @@ function validateArea(val) {
 module.exports = {
     Users: mongoose.model("Users", UserSchema),
     Locations: mongoose.model("Locations", LocationSchema),
+    Parked: mongoose.model("Parked", ParkedSchema),
     Areas: mongoose.model("Areas", AreaSchema)
 }
