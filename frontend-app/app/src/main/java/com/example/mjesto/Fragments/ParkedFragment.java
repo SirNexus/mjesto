@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.example.mjesto.Fragments.Maps.MapsFragment;
 import com.example.mjesto.R;
 
 public class ParkedFragment extends Fragment {

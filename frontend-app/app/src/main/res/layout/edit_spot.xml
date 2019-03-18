@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="300dp"
     android:layout_height="489dp"
     android:layout_gravity="center"
@@ -13,50 +14,24 @@
         android:text="@string/spot_view_more"
         android:textSize="22sp" />
 
-    <LinearLayout
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/edit_spot_vp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="8dp">
+        android:layout_height="339dp" >
 
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="@string/spot_label_type" />
-
-        <Spinner
-            android:id="@+id/s_spot_type"
+        <android.support.design.widget.TabLayout
+            android:id="@+id/edit_spot_tl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            />
+            android:layout_gravity="top"/>
 
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/ll_spot_limited"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:visibility="invisible">
-
-        <TextView
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="@string/spot_label_limit" />
-
-        <EditText
-            android:id="@+id/et_spot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:hint="Enter Time Limit" />
-
-    </LinearLayout>
+    </android.support.v4.view.ViewPager>
 
     <Button
         android:id="@+id/b_spot_submit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="250dp"
         android:layout_gravity="center"
         android:text="Submit" />
 

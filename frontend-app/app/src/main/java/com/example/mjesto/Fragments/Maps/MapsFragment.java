@@ -1,4 +1,4 @@
-package com.example.mjesto.Fragments;
+package com.example.mjesto.Fragments.Maps;
 
 import android.Manifest;
 import android.app.Dialog;
@@ -8,8 +8,10 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.Gravity;
@@ -27,6 +29,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mjesto.Fragments.ParkedFragment;
 import com.example.mjesto.MainActivity;
 import com.example.mjesto.R;
 import com.example.mjesto.Utils.MjestoUtils;
@@ -57,15 +60,17 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private static final String TAG = MapsFragment.class.getSimpleName();
 
     private View mView;
+    private SpotPagerAdapter mAdapter;
+    private ViewPager mPager;
+    private TabLayout mTabLayout;
     private GoogleMap mMap;
     private static final int FINE_LOCATION_PERMISSION_REQUEST = 1;
     private DrawerLayout mDrawyerLayout;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
-    private Spinner mSpotTypeSpinner;
     private LinearLayout mSpotLimitedLL;
     private ArrayList<String> mSpotTypes;
-    private EditText mSpotLimitedET;
+    private static String mLimitedValue;
     private MjestoUtils.Location mCurLocation;
     private Marker mCurMarker;
     private Dialog mCurDialog;
@@ -96,7 +101,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mSpotTypes.add("unlimited");
         mSpotTypes.add("limited");
         mSpotTypes.add("restricted");
-
 
         return mView;
     }
@@ -134,8 +138,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mMap.setOnMyLocationClickListener(this);
 
     }
-
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -191,6 +193,11 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         }
     }
 
+    public static void setMLimitedValue(String limitedValue) {
+        Log.d(TAG, "setting limited value: " + limitedValue);
+        mLimitedValue = limitedValue;
+    }
+
     @Override
     public boolean onMarkerClick(Marker marker) {
         mCurMarker = marker;
@@ -223,8 +230,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             }
         });
 
-
-
         return true;
     }
 
@@ -236,37 +241,38 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         mCurDialog = openDialog(R.layout.edit_spot);
 
-        mSpotTypeSpinner = mCurDialog.findViewById(R.id.s_spot_type);
-        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
-        mSpotLimitedET = mCurDialog.findViewById(R.id.et_spot);
+        mAdapter = new SpotPagerAdapter(getActivity(), mCurLocation);
+        mPager = mCurDialog.findViewById(R.id.edit_spot_vp);
+        mPager.setAdapter(mAdapter);
+
+        mTabLayout = mCurDialog.findViewById(R.id.edit_spot_tl);
+        mTabLayout.setupWithViewPager(mPager);
+
         Button spotSubmitB = mCurDialog.findViewById(R.id.b_spot_submit);
         spotSubmitB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 MjestoUtils.Location updateLocation = new MjestoUtils.Location();
+                String title = (String) mAdapter.getPageTitle(mPager.getCurrentItem());
 
-                updateLocation.restriction = mSpotTypeSpinner.getSelectedItem().toString();
                 // Set to null to prevent being added to json for PATCH
+                updateLocation.restriction = title;
                 updateLocation.coordinates = null;
 
 
-                if (updateLocation.restriction.equals("limited")) {
-                    String limitString = mSpotLimitedET.getText().toString();
-                    if (limitString.equals("") || limitString.equals("0")) {
+                if (title.equals("limited")) {
+                    if (mLimitedValue.equals("") || mLimitedValue.equals("0")) {
                         Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    Integer limit = Integer.parseInt(limitString);
+                    Integer limit = Integer.parseInt(mLimitedValue);
                     Log.d(TAG, "Number of limit: " + limit);
                     updateLocation.limit = limit;
                 }
 
-
                 doMjestoPatchLocation(mCurLocation._id, updateLocation);
             }
         });
-
-        setSpotDialogOptions();
     }
 
     public Dialog openDialog(Integer view) {
@@ -279,46 +285,34 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     }
 
-    public void setSpotDialogOptions() {
-        mSpotTypeSpinner.setAdapter(new ArrayAdapter<>(getActivity(), R.layout.support_simple_spinner_dropdown_item, mSpotTypes));
-        mSpotTypeSpinner.setOnItemSelectedListener(this);
-
-        if (mCurLocation != null) {
-            if (mCurLocation.restriction != null &&
-                    mSpotTypes != null &&
-                    mSpotTypes.contains(mCurLocation.restriction)) {
-                mSpotTypeSpinner.setSelection(mSpotTypes.indexOf(mCurLocation.restriction));
-            }
-
-            if (mCurLocation.restriction.equals("limited") && mCurLocation.limit != null) {
-                mSpotLimitedLL.setVisibility(View.VISIBLE);
-                mSpotLimitedET.setText(String.valueOf(mCurLocation.limit));
-            }
-        }
-    }
-
     @Override
     public void onMapClick(final LatLng latLng) {
         mCurDialog = openDialog(R.layout.edit_spot);
 
         mCurLocation = null;
-        mSpotTypeSpinner = mCurDialog.findViewById(R.id.s_spot_type);
-        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
-        mSpotLimitedET = mCurDialog.findViewById(R.id.et_spot);
+
+        mAdapter = new SpotPagerAdapter(getActivity(), mCurLocation);
+        mPager = mCurDialog.findViewById(R.id.edit_spot_vp);
+        mPager.setAdapter(mAdapter);
+
+        mTabLayout = mCurDialog.findViewById(R.id.edit_spot_tl);
+        mTabLayout.setupWithViewPager(mPager);
+
         Button spotSubmitB = mCurDialog.findViewById(R.id.b_spot_submit);
         spotSubmitB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 MjestoUtils.Location newLocation = new MjestoUtils.Location();
+                String title = (String) mAdapter.getPageTitle(mPager.getCurrentItem());
 
                 newLocation.coordinates.add(latLng.longitude);
                 newLocation.coordinates.add(latLng.latitude);
 
-                newLocation.restriction = mSpotTypeSpinner.getSelectedItem().toString();
+                newLocation.restriction = title;
 
 
-                if (newLocation.restriction.equals("limited")) {
-                    String limitString = mSpotLimitedET.getText().toString();
+                if (title.equals("limited")) {
+                    String limitString = mLimitedValue;
                     if (limitString.equals("") || limitString.equals("0")) {
                         Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
                         return;
@@ -332,9 +326,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 doMjestoPostLocation(newLocation);
             }
         });
-
-        setSpotDialogOptions();
-
 
     }
 

@@ -3,7 +3,9 @@ package com.example.mjesto;
 import android.Manifest;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
@@ -23,6 +25,7 @@ import android.widget.Toast;
 
 import com.example.mjesto.Fragments.ProfileFragment;
 import com.example.mjesto.Fragments.WelcomeFragment;
+import com.example.mjesto.Utils.UserUtils;
 
 import java.io.Serializable;
 
@@ -81,6 +84,10 @@ public class MainActivity extends AppCompatActivity implements
             ActivityCompat.requestPermissions(this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
                     FINE_LOCATION_PERMISSION_REQUEST );
         }
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+//        preferences.edit().putString("test_user", UserUtils.user).commit();
+        Log.d(TAG, "User: " + preferences.getString("test_user", "No user found"));
 
     }
 
