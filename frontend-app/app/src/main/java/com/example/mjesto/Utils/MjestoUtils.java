@@ -13,6 +13,7 @@ public class MjestoUtils {
 
     private final static String MJESTO_BASE_URL = "http://mjesto.io";
     private final static String MJESTO_LOCATIONS_URL = "locations";
+    private final static String MJESTO_PARK_URL = "park";
 
     public static class Location {
         public String _id;
@@ -24,6 +25,11 @@ public class MjestoUtils {
         public Location() {
             coordinates = new ArrayList<>();
         }
+    }
+
+    public static class Park {
+        public String user;
+        public String location;
     }
 
 
@@ -52,6 +58,27 @@ public class MjestoUtils {
                 .toString();
     }
 
+    public static String getMjestoParkUrl() {
+        return Uri.parse(MJESTO_BASE_URL).buildUpon()
+                .appendPath(MJESTO_PARK_URL)
+                .build()
+                .toString();
+    }
+
+    public static String getMjestoParkedUserUrl(String userID) {
+        return Uri.parse(getMjestoParkUrl()).buildUpon()
+                .appendPath(userID)
+                .build()
+                .toString();
+    }
+
+    public static String getMjestoUsersUrl() {
+        return Uri.parse(MJESTO_BASE_URL).buildUpon()
+                .appendPath(MJESTO_LOCATIONS_URL)
+                .build()
+                .toString();
+    }
+
     public static Location[] parseLocationResults(String json) {
         Gson gson = new Gson();
         Location[] locations = gson.fromJson(json, Location[].class);
@@ -73,5 +100,18 @@ public class MjestoUtils {
     public static Location getLocationFromJson(String json) {
         Gson gson = new Gson();
         return gson.fromJson(json, Location.class);
+    }
+
+    public static String buildJsonFromPark(Park park) {
+        Gson gson = new Gson();
+        String json = gson.toJson(park, Park.class);
+        Log.d(TAG, "json from park: " + json);
+        return json;
+    }
+
+    public static Park getParkFromJson(String json) {
+        Gson gson = new Gson();
+        return gson.fromJson(json, Park.class);
+
     }
 }

@@ -86,8 +86,10 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-//        preferences.edit().putString("test_user", UserUtils.user).commit();
-        Log.d(TAG, "User: " + preferences.getString("test_user", "No user found"));
+        preferences.edit()
+                .putString(UserUtils.CUR_USER, UserUtils.user)
+                .commit();
+        Log.d(TAG, "User: " + preferences.getString(UserUtils.CUR_USER, "No user found"));
 
     }
 

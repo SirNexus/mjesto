@@ -13,6 +13,8 @@ import com.example.mjesto.Fragments.Maps.MapsFragment;
 import com.example.mjesto.MainActivity;
 import com.example.mjesto.R;
 
+import java.util.Map;
+
 public class WelcomeFragment extends Fragment implements View.OnClickListener {
 
     private View mView;
@@ -41,6 +43,7 @@ public class WelcomeFragment extends Fragment implements View.OnClickListener {
     }
 
     public void openMap() {
-        MainActivity.updateFragment(new MapsFragment(), "maps");
+        MapsFragment mapsFragment = MapsFragment.getInstance();
+        MainActivity.updateFragment(mapsFragment, "maps");
     }
 }
