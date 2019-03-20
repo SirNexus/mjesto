@@ -14,6 +14,7 @@ public class MjestoUtils {
     private final static String MJESTO_BASE_URL = "http://mjesto.io";
     private final static String MJESTO_LOCATIONS_URL = "locations";
     private final static String MJESTO_PARK_URL = "park";
+    private final static String MJESTO_USERS_URL = "users";
 
     public static class Location {
         public String _id;
@@ -30,6 +31,10 @@ public class MjestoUtils {
     public static class Park {
         public String user;
         public String location;
+    }
+
+    public static class User {
+        public String name;
     }
 
 
@@ -74,7 +79,14 @@ public class MjestoUtils {
 
     public static String getMjestoUsersUrl() {
         return Uri.parse(MJESTO_BASE_URL).buildUpon()
-                .appendPath(MJESTO_LOCATIONS_URL)
+                .appendPath(MJESTO_USERS_URL)
+                .build()
+                .toString();
+    }
+
+    public static String getMjestoUserByIdUrl(String user) {
+        return Uri.parse(getMjestoUsersUrl()).buildUpon()
+                .appendPath(user)
                 .build()
                 .toString();
     }
@@ -114,4 +126,10 @@ public class MjestoUtils {
         return gson.fromJson(json, Park.class);
 
     }
+
+    public static User getUserFromJson(String json) {
+        Gson gson = new Gson();
+        return gson.fromJson(json, User.class);
+    }
+
 }
