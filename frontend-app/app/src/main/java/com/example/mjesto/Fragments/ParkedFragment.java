@@ -30,10 +30,10 @@ public class ParkedFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         mView = inflater.inflate(R.layout.fragment_parked, container, false);
 
-        MapsFragment fragment = MapsFragment.getInstance();
-        FragmentTransaction fragmentTransaction = getChildFragmentManager().beginTransaction();
-        fragmentTransaction.replace(R.id.fl_parked_map, fragment);
-        fragmentTransaction.commit();
+//        MapsFragment fragment = MapsFragment.getInstance();
+//        FragmentTransaction fragmentTransaction = getChildFragmentManager().beginTransaction();
+//        fragmentTransaction.replace(R.id.fl_parked_map, fragment);
+//        fragmentTransaction.commit();
 
         final TextView timeRemainingValue = mView.findViewById(R.id.time_remaining_value_tv);
 

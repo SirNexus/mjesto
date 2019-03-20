@@ -12,6 +12,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
@@ -119,6 +120,10 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         });
         mSwipeButton = mView.findViewById(R.id.parked_swipe_ib);
         mMapsFL = mView.findViewById(R.id.fl_maps);
+        ParkedFragment parkedFragment = new ParkedFragment();
+        FragmentTransaction fragmentTransaction = getChildFragmentManager().beginTransaction();
+        fragmentTransaction.replace(R.id.parked_fragment, parkedFragment);
+        fragmentTransaction.commit();
 
         mCurMarker = null;
         mCurLocation = null;

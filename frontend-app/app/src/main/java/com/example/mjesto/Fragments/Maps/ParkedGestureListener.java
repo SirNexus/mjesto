@@ -15,12 +15,15 @@ import android.widget.LinearLayout;
 
 import com.example.mjesto.R;
 
-public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListener implements View.OnTouchListener {
+public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListener implements
+        View.OnTouchListener,
+        DynamicAnimation.OnAnimationUpdateListener {
 
     private static final String TAG = ParkedGestureListener.class.getSimpleName();
     private static final float CLICK_FLEXIBILITY = 100;
 
     private FrameLayout mMapsFragmentView;
+    private View mCurView;
 
     private float mWindowSize;
     private float mStartY;
@@ -36,6 +39,8 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
     @Override
     public boolean onTouch(View v, MotionEvent event) {
 
+        mCurView = v;
+
         int index = event.getActionIndex();
         int pointerID = event.getPointerId(index);
 
@@ -44,8 +49,8 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
         switch(action) {
             case (MotionEvent.ACTION_DOWN) :
                 Log.d(TAG,"Action was DOWN");
-                mStartY = v.getY();
-                mDifference = event.getRawY() - v.getY();
+                mStartY = mCurView.getY();
+                mDifference = event.getRawY() - mCurView.getY();
                 if (mVelocityTracker == null) {
                     mVelocityTracker = VelocityTracker.obtain();
                 } else {
@@ -55,15 +60,18 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 return true;
             case (MotionEvent.ACTION_MOVE) :
 
-                Log.d(TAG,"Action was MOVE, coords: current: " + v.getY() + ", raw: " + event.getRawY());
+                Log.d(TAG,"Action was MOVE, coords: current: " + mCurView.getY() + ", raw: " + event.getRawY());
 
-                v.setY(event.getRawY() - mDifference);
+//                v.setY(event.getRawY() - mDifference);
 
                 LinearLayout.LayoutParams curP = (LinearLayout.LayoutParams) mMapsFragmentView.getLayoutParams();
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(curP.width, (int) (v.getY() + mDifference));
+                if (mWindowSize == 0) {
+                    mWindowSize = curP.height;
+                }
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(curP.width, (int) event.getRawY());
                 mMapsFragmentView.setLayoutParams(lp);
 
-                event.setLocation(event.getX(), v.getY());
+                event.setLocation(event.getX(), event.getRawY());
                 mVelocityTracker.addMovement(event);
                 mVelocityTracker.computeCurrentVelocity(1000);
                 Log.d(TAG, "Velocity: " + mVelocityTracker.getYVelocity(pointerID));
@@ -74,16 +82,16 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 if (Math.abs(mStartY - (event.getRawY() - mDifference)) < CLICK_FLEXIBILITY) {
                     return false;
                 }
-                FlingAnimation fling = new FlingAnimation(v, DynamicAnimation.TRANSLATION_Y);
+                FlingAnimation fling = new FlingAnimation(mCurView, DynamicAnimation.Y);
                 Log.d(TAG, "Velocity: " + mVelocityTracker.getYVelocity(pointerID));
                 fling.setStartVelocity(mVelocityTracker.getYVelocity(pointerID))
                         .setFriction(1.1f)
+                        .addUpdateListener(this)
                         .start();
-
 
                 return true;
             case (MotionEvent.ACTION_CANCEL) :
-                v.setY(mStartY);
+//                v.setY(mStartY);
                 return true;
             case (MotionEvent.ACTION_OUTSIDE) :
                 Log.d(TAG,"Movement occurred outside bounds " +
@@ -92,5 +100,14 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
             default:
                 return false;
         }
+    }
+
+    @Override
+    public void onAnimationUpdate(DynamicAnimation dynamicAnimation, float v, float v1) {
+        Log.d(TAG, "animation update: " + v + " " + v1);
+        LinearLayout.LayoutParams curP = (LinearLayout.LayoutParams) mMapsFragmentView.getLayoutParams();
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(curP.width, (int) (mCurView.getY() + mDifference));
+        mMapsFragmentView.setLayoutParams(lp);
+
     }
 }
