@@ -25,7 +25,8 @@ module.exports = app => {
         .post(parkUser)
         .get(getParked),
     app.route("/park/:userID")
-        .get(getUserParked);
+        .get(getUserParked)
+        .delete(deleteUserParked),
     app.route("/areas")
         .post(insertArea)
 };
@@ -161,6 +162,14 @@ function getUserParked(req, res) {
 
 }
 
+function deleteUserParked(req, res) {
+    Parked.findOneAndDelete({user: req.params.userID}, function(err, resp)
+    {
+        if (err) res.status(400).send(err);
+        else if (resp != null) res.json("Location deleted successfully")
+        else res.json(resp);
+    });
+}
 
 // ---------------- Area-related functions ---------------------
 var Area = Schema.Areas;
