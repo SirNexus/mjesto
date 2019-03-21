@@ -208,6 +208,12 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
         }
         mParkedLocationID = location._id;
+        Log.d(TAG, "location restriction: " + location.restriction);
+        if (location.restriction.equals("limited")) {
+            ParkedFragment.setTimer(location.limit);
+        } else {
+            ParkedFragment.setParked();
+        }
 //        MainActivity.updateFragment(new ParkedFragment(), "parked");
     }
 
@@ -219,6 +225,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         if (marker != null) {
             marker.setIcon(BitmapDescriptorFactory.defaultMarker());
         }
+        ParkedFragment.clearTimer();
         mParkedLocationID = null;
     }
 

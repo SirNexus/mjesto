@@ -6,7 +6,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/textView4"
+        android:id="@+id/time_label_tv"
         android:layout_width="135dp"
         android:layout_height="54dp"
         android:layout_marginTop="16dp"
@@ -14,8 +14,8 @@
         android:text="Time remaining:"
         android:textSize="18sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/textView6"
-        app:layout_constraintTop_toBottomOf="@+id/textView6" />
+        app:layout_constraintStart_toStartOf="@+id/parking_status_tv"
+        app:layout_constraintTop_toBottomOf="@+id/parking_status_tv" />
 
     <TextView
         android:id="@+id/time_remaining_value_tv"
@@ -25,8 +25,8 @@
         android:text="2 hours"
         android:textSize="18sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@+id/textView4"
-        app:layout_constraintEnd_toEndOf="@+id/textView6" />
+        app:layout_constraintBottom_toBottomOf="@+id/time_label_tv"
+        app:layout_constraintEnd_toEndOf="@+id/parking_status_tv" />
 
     <FrameLayout
         android:id="@+id/fl_parked_map"
@@ -46,7 +46,7 @@
         app:srcCompat="@android:drawable/ic_menu_gallery" />
 
     <TextView
-        android:id="@+id/textView6"
+        android:id="@+id/parking_status_tv"
         android:layout_width="291dp"
         android:layout_height="34dp"
         android:layout_marginTop="20dp"

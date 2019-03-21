@@ -19,8 +19,16 @@ import java.util.concurrent.TimeUnit;
 public class ParkedFragment extends Fragment {
 
     private static final String TAG = ParkedFragment.class.getSimpleName();
+    private static final String NOT_PARKED_STATE = "Not Parked";
+    private static final String PARKED_STATE = "You're Parked!";
 
     public View mView;
+
+    private static TextView mParkingStatusTV;
+    private static TextView mTimeRemainingTV;
+    private static TextView mTimeRemainingLabelTV;
+
+    private static CountDownTimer mCountdownTimer;
 
 
     @Nullable
@@ -28,11 +36,31 @@ public class ParkedFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         mView = inflater.inflate(R.layout.fragment_parked, container, false);
 
-        final TextView timeRemainingValue = mView.findViewById(R.id.time_remaining_value_tv);
+        mParkingStatusTV = mView.findViewById(R.id.parking_status_tv);
+        mTimeRemainingTV = mView.findViewById(R.id.time_remaining_value_tv);
+        mTimeRemainingLabelTV = mView.findViewById(R.id.time_label_tv);
 
-        timeRemainingValue.setText("Test");
+        mCountdownTimer = null;
 
-        CountDownTimer countDownTimer = new CountDownTimer(2 * 60 * 60 * 1000, 1000) {
+        clearTimer();
+
+        return mView;
+    }
+
+    public static void setParked() {
+        mTimeRemainingLabelTV.setVisibility(View.INVISIBLE);
+        mTimeRemainingTV.setVisibility(View.INVISIBLE);
+        mParkingStatusTV.setText(PARKED_STATE);
+    }
+
+    public static void setTimer(int hours) {
+        Log.d(TAG, "setTimer: " + hours);
+
+        mTimeRemainingLabelTV.setVisibility(View.VISIBLE);
+        mTimeRemainingTV.setVisibility(View.VISIBLE);
+        mParkingStatusTV.setText(PARKED_STATE);
+
+        mCountdownTimer = new CountDownTimer(hours * 60 * 60 * 1000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 int hours = (int) (TimeUnit.MILLISECONDS.toHours(millisUntilFinished));
@@ -40,11 +68,11 @@ public class ParkedFragment extends Fragment {
                 int seconds = (int) (TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % TimeUnit.MINUTES.toSeconds(1));
 
                 if (hours != 0) {
-                    timeRemainingValue.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
+                    mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
                 } else if (minutes != 0) {
-                    timeRemainingValue.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
+                    mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
                 } else if (seconds != 0) {
-                    timeRemainingValue.setText(String.format(Locale.getDefault(), "%02d", seconds));
+                    mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d", seconds));
                 }
 
                 Log.d(TAG, "time remaining: " + millisUntilFinished);
@@ -52,12 +80,21 @@ public class ParkedFragment extends Fragment {
 
             @Override
             public void onFinish() {
-                timeRemainingValue.setText("0");
+                mTimeRemainingTV.setText("0");
             }
         };
 
-        countDownTimer.start();
+        mCountdownTimer.start();
 
-        return mView;
+    }
+
+    public static void clearTimer() {
+        Log.d(TAG, "clearTimer");
+        mTimeRemainingLabelTV.setVisibility(View.INVISIBLE);
+        mTimeRemainingTV.setVisibility(View.INVISIBLE);
+        mParkingStatusTV.setText(NOT_PARKED_STATE);
+        if (mCountdownTimer != null) {
+            mCountdownTimer.cancel();
+        }
     }
 }
