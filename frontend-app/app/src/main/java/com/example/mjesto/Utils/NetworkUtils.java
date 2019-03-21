@@ -50,4 +50,14 @@ public class NetworkUtils {
             res.close();
         }
     }
+
+    public static String doHttpDelete(String url) throws IOException {
+        Request req = new Request.Builder().url(url).delete().build();
+        Response res = mHTTPClient.newCall(req).execute();
+        try {
+            return res.body().string();
+        } finally {
+            res.close();
+        }
+    }
 }

@@ -39,6 +39,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -84,6 +85,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     private MjestoUtils.Location mCurLocation;
     private String mParkedLocationID;
+    private String mCurUser;
     private Map<String, Marker> mLocationsMap;
 
     public static synchronized MapsFragment getInstance() {
@@ -148,8 +150,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         super.onActivityCreated(savedInstanceState);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String parked = preferences.getString(UserUtils.CUR_USER_PARKED, "");
-        String user = preferences.getString(UserUtils.CUR_USER, "");
-        Log.d(TAG, "User pref: " + user);
+        mCurUser = preferences.getString(UserUtils.CUR_USER, "");
+        Log.d(TAG, "User pref: " + mCurUser);
         if (!parked.equals("")) {
             Log.d(TAG, "User parked");
             mParkedLocationID = parked;
@@ -205,7 +207,19 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         if (marker != null) {
             marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
         }
+        mParkedLocationID = location._id;
 //        MainActivity.updateFragment(new ParkedFragment(), "parked");
+    }
+
+    public void unparkUser(String locationID) {
+        Log.d(TAG, "Unpark User");
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        preferences.edit().putString(UserUtils.CUR_USER_PARKED, "").commit();
+        Marker marker = mLocationsMap.get(locationID);
+        if (marker != null) {
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker());
+        }
+        mParkedLocationID = null;
     }
 
     @Override
@@ -268,11 +282,27 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     }
 
     private void doMjestoParkUser() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String user = preferences.getString(UserUtils.CUR_USER, "");
-        Log.d(TAG, "User: " + user);
+        if (mCurUser == null) {
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            mCurUser = preferences.getString(UserUtils.CUR_USER, "");
+        }
+        if (mParkedLocationID != null) {
+            unparkUser(mParkedLocationID);
+        }
 
-        new MjestoParkUserTask().execute(user, mCurLocation._id);
+        Log.d(TAG, "User: " + mCurUser);
+
+        new MjestoParkUserTask().execute(mCurUser, mCurLocation._id);
+    }
+
+    private void doMjestoDeleteParkUser() {
+        if (mCurUser == null) {
+            Toast.makeText(getActivity(), "User is null", Toast.LENGTH_LONG);
+        } else {
+            String url = MjestoUtils.getMjestoParkedUserUrl(mCurUser);
+            new MjestoDeleteParkedUserTask().execute(url);
+        }
+
     }
 
     private void populateMap(MjestoUtils.Location[] locations) {
@@ -310,6 +340,11 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         Button parkButton = mCurDialog.findViewById(R.id.b_spot_park);
         parkButton.setOnClickListener(this);
 
+        Log.d(TAG, "mParkedLocationID: " + mParkedLocationID);
+
+        if (mCurLocation._id.equals(mParkedLocationID)) {
+            parkButton.setText("Leave Parking");
+        }
 
         if (mCurLocation.restriction.equals("limited")) {
             mSpotLimitedLL.setVisibility(View.VISIBLE);
@@ -444,7 +479,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     @Override
     public void onCameraIdle() {
-        Toast.makeText(getActivity(), "Camera Idle", Toast.LENGTH_SHORT).show();
         LatLngBounds latLngBounds = mMap.getProjection().getVisibleRegion().latLngBounds;
         Double distance = getDistanceFromBounds(latLngBounds);
 
@@ -470,9 +504,12 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         switch (v.getId()) {
             case R.id.b_spot_park:
                 mCurDialog.dismiss();
-                doMjestoParkUser();
+                if (mCurLocation._id.equals(mParkedLocationID)) {
+                    doMjestoDeleteParkUser();
+                } else {
+                    doMjestoParkUser();
+                }
                 break;
-
         }
     }
 
@@ -703,11 +740,38 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         protected void onPostExecute(String s) {
             Log.d(TAG, "Park user results: " + s);
             if (s != null) {
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                preferences.edit().putString(UserUtils.CUR_USER_PARKED, mCurLocation._id).commit();
                 parkUser(mCurLocation);
             }
 
+        }
+    }
+
+    public class MjestoDeleteParkedUserTask extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... urls) {
+            String url = urls[0];
+            String results = null;
+            try {
+                results = NetworkUtils.doHttpDelete(url);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return results;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            Log.d(TAG, "Get response: " + s);
+
+            if (s != null) {
+                unparkUser(mParkedLocationID);
+                if (s.equals("null")) {
+                    Log.d(TAG, "No user to delete");
+                }
+                Log.d(TAG, "Parking deleted successfully");
+            }
         }
     }
 
