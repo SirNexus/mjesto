@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class UserUtils {
 
-    public static final String user = "5c8c2800d9cbbf0026d657e0";
+    public static final String user = "5c93e57f7337c300262026d5";
     public static final String CUR_USER = "cur_user";
     public static final String CUR_USER_PARKED = "cur_user_parked";
 

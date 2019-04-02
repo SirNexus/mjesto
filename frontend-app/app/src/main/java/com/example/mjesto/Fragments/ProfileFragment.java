@@ -48,12 +48,20 @@ public class ProfileFragment extends Fragment implements
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String parked = preferences.getString(UserUtils.CUR_USER_PARKED, "");
+        String parkingStatus = preferences.getString(UserUtils.CUR_USER_PARKED, "");
         String user = preferences.getString(UserUtils.CUR_USER, "");
 
-        if (!parked.equals("")) {
+        Log.d(TAG, "user: " + user);
+        if (!user.equals("")) {
+            doMjestoGetUserForProfile(user);
+        }
+
+
+        Log.d(TAG, "parking status: " + parkingStatus);
+        if (!parkingStatus.equals("")) {
             mParkingButton.setText("You're Parked!");
-            doMjestoGetUserById(user);
+        } else {
+            mParkingButton.setText("Park");
         }
 
     }
@@ -63,10 +71,10 @@ public class ProfileFragment extends Fragment implements
 
     }
 
-    private void doMjestoGetUserById(String user) {
+    private void doMjestoGetUserForProfile(String user) {
         String url = MjestoUtils.getMjestoUserByIdUrl(user);
         Log.d(TAG, "Querying URL: " + url);
-        new MjestoGetUserByIdTask().execute(url);
+        new MjestoGetUserAndSetProfileTask().execute(url);
     }
 
     @Override
@@ -78,7 +86,7 @@ public class ProfileFragment extends Fragment implements
         }
     }
 
-    class MjestoGetUserByIdTask extends AsyncTask<String, Void, String> {
+    class MjestoGetUserAndSetProfileTask extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... urls) {

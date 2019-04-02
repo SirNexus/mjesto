@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements
                 .putString(UserUtils.CUR_USER, UserUtils.user)
                 .commit();
         Log.d(TAG, "User: " + preferences.getString(UserUtils.CUR_USER, "No user found"));
+        Log.d(TAG, "Parked ID: " + preferences.getString(UserUtils.CUR_USER_PARKED, "Not parked"));
 
     }
 
