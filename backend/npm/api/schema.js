@@ -6,6 +6,10 @@ var UserSchema = new Schema({
         type: String,
         required: "Please enter the name of the person"
     },
+    numParked: {
+        type: Number,
+        default: 0
+    },
     created_date: {
         type: Date,
         default: Date.now()
@@ -37,7 +41,7 @@ var LocationSchema = new Schema({
     },
     restriction: {
         type: String,
-        enum: ["restricted", "unlimited", "limited"],
+        enum: ["no restriction", "unlimited", "limited"],
         required: "Location must have a restriction",
         validate: [validateLocation, "limit must be defined for limited restriction"]
     },

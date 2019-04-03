@@ -10,7 +10,10 @@ module.exports = app => {
         .get(listUsers),
     app.route("/users/:userID")
         .get(getUserByID)
-        .delete(deleteUserByID),
+        .delete(deleteUserByID)
+        .patch(updateUserByID),
+    app.route("/users/:userID/inc")
+        .get(incrementUserParkedCount)
     app.route("/locations")
         .post(insertLocation)
         // TODO: Remove get all locations, replace with near coordinates
@@ -63,6 +66,27 @@ function deleteUserByID(req, res) {
     User.findByIdAndDelete(req.params.userID, function(err) {
         if (err) res.status(400).send(err);
         res.json("User deleted successfully");
+    });
+}
+
+function updateUserByID(req, res) {
+    User.findByIdAndUpdate(req.params.userID, req.body, {new: true}, function(err, user) {
+        if (err) res.status(400).send(err);
+        res.json(user);
+    });
+}
+
+function incrementUserParkedCount(req, res) {
+    User.findById(req.params.userID, function(err, user) {
+        if (err) res.status(400).send(err);
+        else {
+            var userToUpdate = user;
+            console.log(userToUpdate.numParked);
+            User.findByIdAndUpdate(user._id, {numParked: userToUpdate.numParked + 1}, function(err, updateUser) {
+                if (err) res.status(400).send(err);
+                res.json(updateUser);
+            });
+        }
     });
 }
 
