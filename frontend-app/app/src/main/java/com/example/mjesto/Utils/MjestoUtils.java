@@ -35,6 +35,7 @@ public class MjestoUtils {
 
     public static class User {
         public String name;
+        public Integer numParked;
     }
 
 
@@ -91,6 +92,13 @@ public class MjestoUtils {
                 .toString();
     }
 
+    public static String getMjestoIncNumParkedUrlByUserID(String user) {
+        return Uri.parse(getMjestoUserByIdUrl(user)).buildUpon()
+                .appendPath("inc")
+                .build()
+                .toString();
+    }
+
     public static Location[] parseLocationResults(String json) {
         Gson gson = new Gson();
         Location[] locations = gson.fromJson(json, Location[].class);
@@ -130,6 +138,11 @@ public class MjestoUtils {
     public static User getUserFromJson(String json) {
         Gson gson = new Gson();
         return gson.fromJson(json, User.class);
+    }
+
+    public static String buildJsonFromUser(User user) {
+        Gson gson = new Gson();
+        return gson.toJson(user, User.class);
     }
 
 }

@@ -30,6 +30,7 @@ public class ProfileFragment extends Fragment implements
 
     private Button mParkingButton;
     private TextView mUserInfoTV;
+    private TextView mParkingStatsTV;
 
     @Nullable
     @Override
@@ -39,6 +40,7 @@ public class ProfileFragment extends Fragment implements
         mParkingButton = view.findViewById(R.id.parking_b);
         mParkingButton.setOnClickListener(this);
         mUserInfoTV = view.findViewById(R.id.user_name_tv);
+        mParkingStatsTV = view.findViewById(R.id.parking_stats_tv);
 
 
         return view;
@@ -67,8 +69,9 @@ public class ProfileFragment extends Fragment implements
     }
 
     public void setUserDetails(MjestoUtils.User user) {
+        Log.d(TAG, "user: " + MjestoUtils.buildJsonFromUser(user));
         mUserInfoTV.setText("Hello, " + user.name);
-
+        mParkingStatsTV.setText(user.numParked.toString());
     }
 
     private void doMjestoGetUserForProfile(String user) {

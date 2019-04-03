@@ -1,5 +1,6 @@
 package com.example.mjesto.Utils;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
@@ -58,6 +59,27 @@ public class NetworkUtils {
             return res.body().string();
         } finally {
             res.close();
+        }
+    }
+
+    public static class MjestoDoGetTask extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String url = strings[0];
+
+
+            String results = null;
+            try {
+                results = NetworkUtils.doHttpGet(url);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Log.d(TAG, "resutls from get: " + results);
+
+            return results;
         }
     }
 }

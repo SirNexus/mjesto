@@ -39,7 +39,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -279,12 +278,16 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         new MjestoPostLocationTask().execute(url, body);
     }
 
+    private void doMjestoDeleteLocation(MjestoUtils.Location location) {
+        String url = MjestoUtils.getMjestoLocationsUrlWithID(location._id);
+        new MjestoDeleteLocationTask().execute(url);
+    }
+
     private void doMjestoGetParkedUser() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String user = preferences.getString(UserUtils.CUR_USER, "");
         Log.d(TAG, "User: " + user);
         String url = MjestoUtils.getMjestoParkedUserUrl(user);
-
         new MjestoGetParkedUserTask().execute(url);
     }
 
@@ -296,10 +299,22 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         if (mParkedLocationID != null) {
             unparkUser(mParkedLocationID);
         }
+        String url = MjestoUtils.getMjestoParkUrl();
 
         Log.d(TAG, "User: " + mCurUser);
 
-        new MjestoParkUserTask().execute(mCurUser, mCurLocation._id);
+        new MjestoParkUserTask().execute(url, mCurUser, mCurLocation._id);
+    }
+
+    private void doMjestoIncParkedUser() {
+        if (mCurUser == null) {
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            mCurUser = preferences.getString(UserUtils.CUR_USER, "");
+        }
+
+        String url = MjestoUtils.getMjestoIncNumParkedUrlByUserID(mCurUser);
+
+        new NetworkUtils.MjestoDoGetTask().execute(url);
     }
 
     private void doMjestoDeleteParkUser() {
@@ -309,7 +324,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             String url = MjestoUtils.getMjestoParkedUserUrl(mCurUser);
             new MjestoDeleteParkedUserTask().execute(url);
         }
-
     }
 
     private void populateMap(MjestoUtils.Location[] locations) {
@@ -412,6 +426,14 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 }
 
                 doMjestoPatchLocation(mCurLocation._id, updateLocation);
+            }
+        });
+
+        Button spotDeleteB = mCurDialog.findViewById(R.id.b_spot_delete);
+        spotDeleteB.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                doMjestoDeleteLocation(mCurLocation);
             }
         });
     }
@@ -680,9 +702,43 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 mCurLocation = location;
                 LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
                 Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
+                mLocationsMap.put(mCurLocation._id, marker);
                 marker.setTag(location);
                 Toast.makeText(getActivity(), "Spot Created Successfully", Toast.LENGTH_LONG).show();
                 mCurDialog.dismiss();
+            }
+        }
+    }
+
+    class MjestoDeleteLocationTask extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String url = strings[0];
+            String results = null;
+
+            try {
+                results = NetworkUtils.doHttpDelete(url);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+            return results;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+
+
+            Log.d(TAG, "Results of Delete: " + s);
+
+            if (s.equals("\"Location Delete Successful\"")) {
+                mCurDialog.dismiss();
+                mLocationsMap.remove(mCurLocation._id);
+                mCurMarker.remove();
+                Toast.makeText(getActivity(), "Location Deleted Successfully", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -722,9 +778,9 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         @Override
         protected String doInBackground(String... strings) {
-            String userID = strings[0];
-            String locationID = strings[1];
-            String url = MjestoUtils.getMjestoParkUrl();
+            String url = strings[0];
+            String userID = strings[1];
+            String locationID = strings[2];
 
             MjestoUtils.Park park = new MjestoUtils.Park();
             park.user = userID;
@@ -746,8 +802,11 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         @Override
         protected void onPostExecute(String s) {
             Log.d(TAG, "Park user results: " + s);
+//            MjestoUtils.Location location = MjestoUtils.getLocationFromJson(s);
             if (s != null) {
+                Log.d(TAG, "CurLocaiton:" + MjestoUtils.buildJsonFromLocation(mCurLocation));
                 parkUser(mCurLocation);
+                doMjestoIncParkedUser();
             }
 
         }
