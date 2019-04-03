@@ -33,7 +33,7 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
     ParkedGestureListener(View view) {
         mMapsFragmentView = (FrameLayout) view;
         mVelocityTracker = null;
-        mWindowSize = 0;
+        mWindowSize = mMapsFragmentView.getHeight();
     }
 
     @Override
@@ -51,6 +51,10 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 Log.d(TAG,"Action was DOWN");
                 mStartY = mCurView.getY();
                 mDifference = event.getRawY() - mCurView.getY();
+                if (mWindowSize <= 0) {
+                    mWindowSize = mMapsFragmentView.getHeight();
+
+                }
                 if (mVelocityTracker == null) {
                     mVelocityTracker = VelocityTracker.obtain();
                 } else {
@@ -60,21 +64,17 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 return true;
             case (MotionEvent.ACTION_MOVE) :
 
-                Log.d(TAG,"Action was MOVE, coords: current: " + mCurView.getY() + ", raw: " + event.getRawY());
+                Log.d(TAG,"Action was MOVE, coords: current: " + mCurView.getY() + ", raw: " + event.getRawY() + ", window: " + mMapsFragmentView.getHeight());
 
-//                v.setY(event.getRawY() - mDifference);
+                if (event.getRawY() > 1400 && event.getRawY() <= mWindowSize) {
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(mMapsFragmentView.getWidth(), (int) (event.getRawY()));
+                    mMapsFragmentView.setLayoutParams(lp);
 
-                LinearLayout.LayoutParams curP = (LinearLayout.LayoutParams) mMapsFragmentView.getLayoutParams();
-                if (mWindowSize == 0) {
-                    mWindowSize = curP.height;
+                    event.setLocation(event.getX(), event.getRawY());
+                    mVelocityTracker.addMovement(event);
+                    mVelocityTracker.computeCurrentVelocity(1000);
+                    Log.d(TAG, "Velocity: " + mVelocityTracker.getYVelocity(pointerID));
                 }
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(curP.width, (int) event.getRawY());
-                mMapsFragmentView.setLayoutParams(lp);
-
-                event.setLocation(event.getX(), event.getRawY());
-                mVelocityTracker.addMovement(event);
-                mVelocityTracker.computeCurrentVelocity(1000);
-                Log.d(TAG, "Velocity: " + mVelocityTracker.getYVelocity(pointerID));
 
                 return true;
             case (MotionEvent.ACTION_UP) :
@@ -82,10 +82,14 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 if (Math.abs(mStartY - (event.getRawY() - mDifference)) < CLICK_FLEXIBILITY) {
                     return false;
                 }
+
                 FlingAnimation fling = new FlingAnimation(mCurView, DynamicAnimation.Y);
                 Log.d(TAG, "Velocity: " + mVelocityTracker.getYVelocity(pointerID));
+                Log.d(TAG, "Window Size: " + mWindowSize);
                 fling.setStartVelocity(mVelocityTracker.getYVelocity(pointerID))
                         .setFriction(1.1f)
+                        .setMinValue(1400 - mDifference)
+                        .setMaxValue(mWindowSize - mDifference)
                         .addUpdateListener(this)
                         .start();
 
