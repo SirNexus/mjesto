@@ -48,26 +48,19 @@ var LocationSchema = new Schema({
     limit: {
         type: Number,
     },
-    coordinates: {
+    beginCoords: {
+        type: [Number],
+        required: "Please enter a longitude, latitude",
+        index: "2dsphere",
+        validate: [validateCoordinates, "Coordinates not valid [(longitude, latitude)]"]
+    },
+    endCoords: {
         type: [Number],
         required: "Please enter a longitude, latitude",
         index: "2dsphere",
         validate: [validateCoordinates, "Coordinates not valid [(longitude, latitude)]"]
     }
 });
-
-var AreaSchema = new Schema({
-    type: {
-        type: String,
-        enum: ['Polygon'],
-        required: "Area must be of type 'Polygon"
-    },
-    coordinates: {
-        type: [[Number]],
-        required: "Please enter a set of Geo Coordinates",
-        validate: [validateArea, "Coordinates are not of format [(long, lat)] required "]
-    }
-})
 
 function validateLocation (val) {
     if (val == "limited" && this.limit == undefined) {
@@ -101,5 +94,4 @@ module.exports = {
     Users: mongoose.model("Users", UserSchema),
     Locations: mongoose.model("Locations", LocationSchema),
     Parked: mongoose.model("Parked", ParkedSchema),
-    Areas: mongoose.model("Areas", AreaSchema)
 }

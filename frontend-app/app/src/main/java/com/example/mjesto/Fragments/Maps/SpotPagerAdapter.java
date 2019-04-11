@@ -1,4 +1,4 @@
-package com.example.mjesto.Fragments.Maps;
+package com.example.mjesto.Fragments.Maps.Utils;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -12,10 +12,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
+import com.example.mjesto.Fragments.Maps.MapsFragment;
 import com.example.mjesto.R;
 import com.example.mjesto.Utils.MjestoUtils;
-
-import java.util.Map;
 
 public class SpotPagerAdapter extends PagerAdapter implements TextWatcher {
     private static final String TAG = SpotPagerAdapter.class.getSimpleName();

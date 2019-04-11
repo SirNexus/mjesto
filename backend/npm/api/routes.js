@@ -24,6 +24,8 @@ module.exports = app => {
         .patch(updateLocationByID),
     app.route("/locations/:longitude/:latitude/:radius")
         .get(getLocationsNearCoords),
+    app.route("/locations/:southWestLong/:southWestLat/:northEastLong/:northEastLat")
+        .get(getLocationsInBox),
     app.route("/park")
         .post(parkUser)
         .get(getParked),
@@ -44,7 +46,7 @@ function insertUser(req, res) {
 
     new_user.save(function(err, user) {
         if (err) res.status(400).send(err);
-        res.json(user);
+        else res.json(user);
 
     });
 }
@@ -52,27 +54,27 @@ function insertUser(req, res) {
 function listUsers(req, res) {
     User.find({}, function(err, user) {
         if (err) res.status(400).send(err);
-        res.json(user);
+        else res.json(user);
     });
 }
 
 function getUserByID(req, res) {
    User.findById(req.params.userID, function(err, user) {
        if (err) res.status(400).send(err);
-       res.json(user);
+       else res.json(user);
    });
 }
 function deleteUserByID(req, res) {
     User.findByIdAndDelete(req.params.userID, function(err) {
         if (err) res.status(400).send(err);
-        res.json("User deleted successfully");
+        else res.json("User deleted successfully");
     });
 }
 
 function updateUserByID(req, res) {
     User.findByIdAndUpdate(req.params.userID, req.body, {new: true}, function(err, user) {
         if (err) res.status(400).send(err);
-        res.json(user);
+        else res.json(user);
     });
 }
 
@@ -84,7 +86,7 @@ function incrementUserParkedCount(req, res) {
             console.log(userToUpdate.numParked);
             User.findByIdAndUpdate(user._id, {numParked: userToUpdate.numParked + 1}, function(err, updateUser) {
                 if (err) res.status(400).send(err);
-                res.json(updateUser);
+                else res.json(updateUser);
             });
         }
     });
@@ -97,7 +99,7 @@ var Location = Schema.Locations;
 function getLocations(req, res) {
     Location.find({}, function(err, location) {
         if (err) res.status(400).send(err);
-        res.json(location);
+        else res.json(location);
     });
 }
 
@@ -108,20 +110,23 @@ function insertLocation(req, res) {
 
     new_location.save(function(err, location) {
         if (err) res.status(400).send(err);
-        res.json(location);
+        else res.json(location);
     });
 }
 
 function getLocationByID(req, res) {
     Location.findById(req.params.locationID, function(err, location) {
         if (err) res.status(400).send(err);
-        res.json(location);
+        else res.json(location);
     })
 }
 
 function getLocationsNearCoords(req, res) {
+    // Can't have multiple near queries in mongoDB, meaning search is limited to
+    // coordinates near beginCoords unless work to aggregate two different 
+    // queries is found necessary.
     Location.find({
-        coordinates: {
+        beginCoords: {
             $near: {
                 $maxDistance: req.params.radius,
                 $geometry: {
@@ -131,14 +136,41 @@ function getLocationsNearCoords(req, res) {
             }
         }}, function (err, locations) {
             if (err) res.status(400).send(err);
-            res.json(locations);
+            else res.json(locations);
         });
+}
+
+function getLocationsInBox(req, res) {
+    Location.find({
+        $or: [
+            {beginCoords: {
+                $geoWithin: {
+                    $box: [
+                        [req.params.southWestLong, req.params.southWestLat],
+                        [req.params.northEastLong, req.params.northEastLat]
+                    ]
+                }
+            }},
+            {endCoords: {
+                $geoWithin: {
+                    $box: [
+                        [req.params.southWestLong, req.params.southWestLat],
+                        [req.params.northEastLong, req.params.northEastLat]
+                    ]
+                }
+            }}
+        ]
+        
+    }, function (err, locations) {
+        if (err) res.status(400).send(err);
+        else res.json(locations);
+    });
 }
 
 function deleteLocationByID(req, res) {
     Location.findByIdAndDelete(req.params.locationID, function(err) {
         if (err) res.status(400).send(err);
-        res.json("Location Delete Successful");
+        else res.json("Location Delete Successful");
     });
 
 }
@@ -146,10 +178,9 @@ function deleteLocationByID(req, res) {
 function updateLocationByID(req, res) {
     Location.findByIdAndUpdate(req.params.locationID, req.body, {new: true}, function(err, location) {
         if (err) res.status(400).send(err);
-        res.json(location);
+        else res.json(location);
     });
 }
-
 
 // ---------------- Parked-related functions -------------------
 
@@ -166,7 +197,7 @@ function parkUser(req, res) {
         req.body, options, function(err, parked)
     {
         if (err) res.status(400).send(err);
-        res.json(parked);
+        else res.json(parked);
     });
 
 }
@@ -174,14 +205,14 @@ function parkUser(req, res) {
 function getParked(req, res) {
     Parked.find({}, function(err, parked) {
         if (err) res.status(400).send(err);
-        res.json(parked);
+        else res.json(parked);
     });
 }
 
 function getUserParked(req, res) {
     Parked.findOne({user: req.params.userID}, function (err, parked) {
         if (err) res.status(400).send(err);
-        res.json(parked);
+        else res.json(parked);
     });
 
 }
@@ -205,6 +236,6 @@ function insertArea(req, res) {
     console.log(req.body.coordinates);
     new_area.save(function(err, area){
         if (err) res.status(400).send(err);
-        res.json(area);
+        else res.json(area);
     });
 }

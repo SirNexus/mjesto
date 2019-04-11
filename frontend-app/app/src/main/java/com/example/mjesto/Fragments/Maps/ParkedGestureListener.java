@@ -1,19 +1,14 @@
-package com.example.mjesto.Fragments.Maps;
+package com.example.mjesto.Fragments.Maps.Utils;
 
-import android.content.Context;
 import android.support.animation.DynamicAnimation;
 import android.support.animation.FlingAnimation;
 import android.util.Log;
-import android.view.Display;
-import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-
-import com.example.mjesto.R;
 
 public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListener implements
         View.OnTouchListener,
