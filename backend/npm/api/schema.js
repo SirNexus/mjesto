@@ -41,7 +41,7 @@ var LocationSchema = new Schema({
     },
     restriction: {
         type: String,
-        enum: ["no restriction", "unlimited", "limited"],
+        enum: ["no restriction", "limited", "restricted"],
         required: "Location must have a restriction",
         validate: [validateLocation, "limit must be defined for limited restriction"]
     },
