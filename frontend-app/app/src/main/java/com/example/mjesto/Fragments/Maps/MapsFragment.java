@@ -921,6 +921,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 mLocationsMap.remove(mCurLocation._id);
 //                TODO: remove marker
 //                mCurMarker.remove();
+                mTileOverlay.clearTileCache();
                 Toast.makeText(getActivity(), "Location Deleted Successfully", Toast.LENGTH_LONG).show();
             }
         }
