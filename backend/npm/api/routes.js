@@ -82,6 +82,10 @@ function incrementUserParkedCount(req, res) {
     User.findById(req.params.userID, function(err, user) {
         if (err) res.status(400).send(err);
         else {
+            if (user == null) {
+                res.status(400).send("User not found");
+                return;
+            }
             var userToUpdate = user;
             console.log(userToUpdate.numParked);
             User.findByIdAndUpdate(user._id, {numParked: userToUpdate.numParked + 1}, function(err, updateUser) {
