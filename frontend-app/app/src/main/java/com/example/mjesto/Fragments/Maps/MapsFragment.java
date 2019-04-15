@@ -2,6 +2,7 @@ package com.example.mjesto.Fragments.Maps;
 
 import android.Manifest;
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -43,9 +44,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.maps.model.TileProvider;
@@ -57,10 +55,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.example.mjesto.Utils.MjestoUtils.getMjestoLocationsUrl;
+
 public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
+        GoogleMap.OnMapLongClickListener,
         GoogleMap.OnCameraIdleListener,
         OnMapReadyCallback,
         AdapterView.OnItemSelectedListener,
@@ -68,6 +69,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String TAG = MapsFragment.class.getSimpleName();
+    private static final String LOCATION_CLICK_FLEXIBILITY = "250";
 
     private static volatile MapsFragment mapsFragmentInstance;
 
@@ -88,11 +90,13 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private LinearLayout mSpotLimitedLL;
     private ArrayList<String> mSpotTypes;
     private static String mLimitedValue;
+//    TODO: remove marker
     private Marker mCurMarker;
     private Dialog mCurDialog;
     private FrameLayout mMapsFL;
 
     private MjestoUtils.Location mCurLocation;
+    private LatLng mCurLatLng;
     private String mParkedLocationID;
     private String mCurUser;
     private Map<String, Marker> mLocationsMap;
@@ -132,8 +136,10 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         fragmentTransaction.commit();
 
         mFirstClick = null;
+//        TODO: remove marker
         mCurMarker = null;
         mCurLocation = null;
+        mCurLatLng = null;
         mParkedLocationID = null;
         mCurDialog = null;
         mLocationsMap = new HashMap<>();
@@ -203,6 +209,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapClickListener(this);
+        mMap.setOnMapLongClickListener(this);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
 //        TODO: reenable this
@@ -271,7 +278,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     }
 
     private void doMjestoGetLocations() {
-        String url = MjestoUtils.getMjestoLocationsUrl();
+        String url = getMjestoLocationsUrl();
         Log.d(TAG, "Querying URL: " + url);
         new MjestoGetLocationsTask().execute(url);
     }
@@ -280,6 +287,12 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         String url = MjestoUtils.getMjestoLocationsUrlWithID(locationID);
         Log.d(TAG, "With ID Querying URL: " + url);
         new MjestoGetLocationByIdTask().execute(url);
+    }
+
+    private void doMjestoGetLocationNearLatLng(LatLng latLng) {
+
+        String url = getMjestoLocationsUrl(String.valueOf(latLng.longitude), String.valueOf(latLng.latitude), LOCATION_CLICK_FLEXIBILITY);
+        new MjestoGetLocationNearLatLng().execute(url);
     }
 
     private void doMjestoPatchLocation(String id, MjestoUtils.Location location) {
@@ -291,7 +304,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     private void doMjestoPostLocation(MjestoUtils.Location location) {
         String body = MjestoUtils.buildJsonFromLocation(location);
-        String url = MjestoUtils.getMjestoLocationsUrl();
+        String url = getMjestoLocationsUrl();
         new MjestoPostLocationTask().execute(url, body);
     }
 
@@ -366,8 +379,82 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mLimitedValue = limitedValue;
     }
 
+    public void findLocationNearLatLng(LatLng latLng, MjestoUtils.Location[] locations) {
+        for (MjestoUtils.Location location : locations) {
+//            if location has a greater longitude or latitude than the points on line, continue
+            if (Math.abs(latLng.latitude) * 111000 > Math.max(Math.abs(location.beginCoords.get(1)), Math.abs(location.endCoords.get(1))) * 111000 + 5
+                    || Math.abs(latLng.latitude) * 111000 < Math.min(Math.abs(location.beginCoords.get(1)), Math.abs(location.endCoords.get(1))) * 111000 - 5
+                    || Math.abs(latLng.longitude) * 111000 > Math.max(Math.abs(location.beginCoords.get(0)), Math.abs(location.endCoords.get(0))) * 111000 + 5
+                    || Math.abs(latLng.longitude) * 111000 < Math.min(Math.abs(location.beginCoords.get(0)), Math.abs(location.endCoords.get(0))) * 111000 - 5) {
+                continue;
+            }
+
+            Double distance;
+            distance = Math.abs(
+//                  (y2 - y1)x0
+                    (location.endCoords.get(1) - location.beginCoords.get(1)) * latLng.longitude
+//                  - (x2 - x1)y0
+                    - (location.endCoords.get(0) - location.beginCoords.get(0)) * latLng.latitude
+//                  + x2y1
+                    + location.endCoords.get(0) * location.beginCoords.get(1)
+//                  - y2x1
+                    - location.endCoords.get(1) * location.beginCoords.get(0)
+            ) / Math.sqrt(
+//                  (y2 - y1)^2
+                    Math.pow(location.endCoords.get(1) - location.beginCoords.get(1), 2)
+//                  (x2 - x1)^2
+                    + Math.pow(location.endCoords.get(0) - location.beginCoords.get(0), 2)
+            );
+
+            Log.d(TAG, "Distance from latlng to line of location: " + distance * 111000);
+
+            if (distance < 10) {
+                openSpotDialog(location);
+                break;
+            }
+        }
+    }
+
+    public void openSpotDialog(MjestoUtils.Location location) {
+        mCurLocation = location;
+        mCurDialog = openDialog(R.layout.view_spot);
+
+        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
+        TextView restriction_tv = mCurDialog.findViewById(R.id.s_spot_type);
+        restriction_tv.setText(mCurLocation.restriction);
+        TextView limit_tv = mCurDialog.findViewById(R.id.tv_spot_limit);
+        Button parkButton = mCurDialog.findViewById(R.id.b_spot_park);
+        parkButton.setOnClickListener(this);
+
+        Log.d(TAG, "mParkedLocationID: " + mParkedLocationID);
+
+        if (mCurLocation._id.equals(mParkedLocationID)) {
+            parkButton.setText("Leave Parking");
+        }
+
+        if (mCurLocation.restriction.equals("limited")) {
+            mSpotLimitedLL.setVisibility(View.VISIBLE);
+            if (mCurLocation.limit != null) {
+                limit_tv.setText(String.valueOf(mCurLocation.limit));
+            } else {
+                limit_tv.setText(0);
+            }
+
+        }
+
+        TextView editSpot = mCurDialog.findViewById(R.id.tv_edit_spot);
+        editSpot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openEditSpotDialog();
+            }
+        });
+
+    }
+
     @Override
     public boolean onMarkerClick(Marker marker) {
+//        TODO: remove marker listener
         mCurMarker = marker;
         mCurLocation = (MjestoUtils.Location) marker.getTag();
         mCurDialog = openDialog(R.layout.view_spot);
@@ -523,6 +610,27 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             }
         });
 
+        Button spotDeleteB = mCurDialog.findViewById(R.id.b_spot_delete);
+        spotDeleteB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFirstClick = null;
+                mClickStatus.setText("First Click");
+                mCurDialog.dismiss();
+            }
+        });
+
+
+
+    }
+
+    @Override
+    public void onMapLongClick(LatLng latLng) {
+
+        mCurLatLng = latLng;
+        doMjestoGetLocationNearLatLng(mCurLatLng);
+
+
     }
 
     @Override
@@ -547,7 +655,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         LatLng position = mMap.getCameraPosition().target;
         if (position != null) {
             // 111,111 used as dirty conversion from coordinates to meters
-            String url = MjestoUtils.getMjestoLocationsUrl(
+            String url = getMjestoLocationsUrl(
                     Double.toString(position.longitude),
                     Double.toString(position.latitude),
                     Double.toString(distance / 2 * 25000));
@@ -585,6 +693,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             }
         }
     }
+
 
 
 
@@ -658,6 +767,38 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         }
     }
 
+    class MjestoGetLocationNearLatLng extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... urls) {
+            String url = urls[0];
+            String results = null;
+            try {
+                results = NetworkUtils.doHttpGet(url);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return results;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            Log.d(TAG, "Get response near latlng: " + s);
+
+            if (s != null) {
+                MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(s);
+                if (locations != null) {
+                    findLocationNearLatLng(mCurLatLng, locations);
+                    mCurLatLng = null;
+                }
+            } else {
+                Log.d(TAG, "Locations near latlng returned null");
+            }
+
+        }
+    }
+
     class MjestoPatchLocationTask extends AsyncTask<String, Void, String> {
 
         @Override
@@ -686,7 +827,9 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             location = MjestoUtils.getLocationFromJson(s);
             if (location != null) {
                 mCurLocation = location;
-                mCurMarker.setTag(location);
+//                TODO: remove marker
+//                mCurMarker.setTag(location);
+                mTileOverlay.clearTileCache();
                 Toast.makeText(getActivity(), "Spot Updated Successfully", Toast.LENGTH_LONG).show();
                 mCurDialog.dismiss();
             } else {
@@ -739,6 +882,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 //                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
 //                mLocationsMap.put(mCurLocation._id, marker);
 //                marker.setTag(location);
+//
                 mFirstClick = null;
                 mClickStatus.setText("First Click");
                 mTileOverlay.clearTileCache();
@@ -775,7 +919,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             if (s.equals("\"Location Delete Successful\"")) {
                 mCurDialog.dismiss();
                 mLocationsMap.remove(mCurLocation._id);
-                mCurMarker.remove();
+//                TODO: remove marker
+//                mCurMarker.remove();
                 Toast.makeText(getActivity(), "Location Deleted Successfully", Toast.LENGTH_LONG).show();
             }
         }

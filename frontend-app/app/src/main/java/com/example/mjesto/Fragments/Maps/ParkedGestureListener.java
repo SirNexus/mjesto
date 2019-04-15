@@ -86,6 +86,7 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 FlingAnimation fling = new FlingAnimation(mCurView, DynamicAnimation.Y);
                 Log.d(TAG, "Velocity: " + mVelocityTracker.getYVelocity(pointerID));
                 Log.d(TAG, "Window Size: " + mWindowSize);
+                Log.d(TAG, "mDifference: " + mDifference);
                 fling.setStartVelocity(mVelocityTracker.getYVelocity(pointerID))
                         .setFriction(1.1f)
                         .setMinValue(1400 - mDifference)
