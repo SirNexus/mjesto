@@ -18,14 +18,21 @@ public class MjestoUtils {
 
     public static class Location {
         public String _id;
-        public ArrayList<Double> coordinates;
+        public ArrayList<Double> beginCoords;
+        public ArrayList<Double> endCoords;
         public String restriction;
         public Integer limit;
         public JsonObject errors;
 
         public Location() {
-            coordinates = new ArrayList<>();
+            beginCoords = new ArrayList<>();
+            endCoords = new ArrayList<>();
         }
+    }
+
+    public static class LocationsResult {
+        public Location[] locations;
+        public String message;
     }
 
     public static class Park {
@@ -54,7 +61,17 @@ public class MjestoUtils {
                 .appendPath(distance)
                 .build()
                 .toString();
+    }
 
+    public static String getMjestoLocationsUrl(String southwestLong, String southwestLat, String northeastLong, String northeastLat) {
+        return Uri.parse(MJESTO_BASE_URL).buildUpon()
+                .appendPath(MJESTO_LOCATIONS_URL)
+                .appendPath(southwestLong)
+                .appendPath(southwestLat)
+                .appendPath(northeastLong)
+                .appendPath(northeastLat)
+                .build()
+                .toString();
     }
 
     public static String getMjestoLocationsUrlWithID(String id) {
@@ -101,11 +118,20 @@ public class MjestoUtils {
 
     public static Location[] parseLocationResults(String json) {
         Gson gson = new Gson();
-        Location[] locations = gson.fromJson(json, Location[].class);
+        LocationsResult result = new LocationsResult();
+        if (json.startsWith("{")) {
+            result.message = json;
+        } else if (json.startsWith("[")) {
+            result.locations = gson.fromJson(json, Location[].class);
+            Log.d(TAG, "locations:" + result.locations.length);
+        }
 
-        if (locations != null) {
-            return locations;
+        if (result.locations != null && result.message == null) {
+            return result.locations;
         } else {
+            if (result.message != null) {
+                Log.d(TAG, result.message);
+            }
             return null;
         }
     }

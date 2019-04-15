@@ -44,6 +44,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.android.gms.maps.model.TileProvider;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -66,12 +71,17 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     private static volatile MapsFragment mapsFragmentInstance;
 
+//    TODO: remove temp variables
+    private TextView mClickStatus;
+    private LatLng mFirstClick;
+
     private View mView;
     private ImageButton mSwipeButton;
     private SpotPagerAdapter mAdapter;
     private ViewPager mPager;
     private TabLayout mTabLayout;
     private GoogleMap mMap;
+    private TileOverlay mTileOverlay;
     private DrawerLayout mDrawyerLayout;
     private Button mPopulateButton;
     private ProgressBar mPopulateProgress;
@@ -121,6 +131,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         fragmentTransaction.replace(R.id.parked_fragment, parkedFragment);
         fragmentTransaction.commit();
 
+        mFirstClick = null;
         mCurMarker = null;
         mCurLocation = null;
         mParkedLocationID = null;
@@ -178,22 +189,32 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng corvallis = new LatLng(44.5646, -123.2620);
-
-        mMap.setOnMarkerClickListener(this);
-        mMap.setOnMapClickListener(this);
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
-        mMap.setOnCameraIdleListener(this);
-
-
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         } else {
             Toast.makeText(getActivity(), "Don't have permission", Toast.LENGTH_LONG).show();
         }
+
+        mMap.setMaxZoomPreference(20);
+
+        // Add a marker in Corvallis and move the camera
+        LatLng corvallis = new LatLng(44.5646, -123.2620);
+        LatLng testLine = new LatLng(44.5646, -123.27);
+        googleMap.addPolyline(new PolylineOptions()
+                .add(corvallis)
+                .add(testLine));
+
+        mMap.setOnMarkerClickListener(this);
+        mMap.setOnMapClickListener(this);
+
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
+//        TODO: reenable this
+//        mMap.setOnCameraIdleListener(this);
+
+        TileProvider tileProvider = new SpotsTileProvider(getActivity());
+        mTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(tileProvider));
+
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
 
@@ -329,16 +350,17 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private void populateMap(MjestoUtils.Location[] locations) {
         for (MjestoUtils.Location location : locations) {
             if (mLocationsMap.get(location._id) == null) {
-                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
+//                TODO: replace with drawing on canvas
+//                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
 
-                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
-                marker.setTag(location);
+//                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
+//                marker.setTag(location);
 
-                if (mParkedLocationID != null && mParkedLocationID.equals(location._id)) {
-                    marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-                }
-
-                mLocationsMap.put(location._id, marker);
+//                if (mParkedLocationID != null && mParkedLocationID.equals(location._id)) {
+//                    marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+//                }
+//
+//                mLocationsMap.put(location._id, marker);
             }
         }
     }
@@ -412,7 +434,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
                 // Set to null to prevent being added to json for PATCH
                 updateLocation.restriction = title;
-                updateLocation.coordinates = null;
+                updateLocation.beginCoords = null;
+                updateLocation.endCoords = null;
 
 
                 if (title.equals("limited")) {
@@ -450,6 +473,17 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     @Override
     public void onMapClick(final LatLng latLng) {
+
+        mClickStatus = mView.findViewById(R.id.tv_click_status);
+
+        if (mFirstClick == null) {
+            mFirstClick = latLng;
+            mClickStatus.setText("Second Click");
+            return;
+        }
+
+//        TODO: implement first and second click and then upload line parking spot
+
         mCurDialog = openDialog(R.layout.edit_spot);
 
         mCurLocation = null;
@@ -468,8 +502,11 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 MjestoUtils.Location newLocation = new MjestoUtils.Location();
                 String title = (String) mAdapter.getPageTitle(mPager.getCurrentItem());
 
-                newLocation.coordinates.add(latLng.longitude);
-                newLocation.coordinates.add(latLng.latitude);
+                newLocation.beginCoords.add(mFirstClick.longitude);
+                newLocation.beginCoords.add(mFirstClick.latitude);
+
+                newLocation.endCoords.add(latLng.longitude);
+                newLocation.endCoords.add(latLng.latitude);
 
                 newLocation.restriction = title;
 
@@ -512,20 +549,21 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         Double distance = getDistanceFromBounds(latLngBounds);
 
         LatLng position = mMap.getCameraPosition().target;
-        // 111,111 used as dirty conversion from coordinates to meters
-        String url = MjestoUtils.getMjestoLocationsUrl(
-                Double.toString(position.longitude),
-                Double.toString(position.latitude),
-                Double.toString(distance / 2 * 25000));
+        if (position != null) {
+            // 111,111 used as dirty conversion from coordinates to meters
+            String url = MjestoUtils.getMjestoLocationsUrl(
+                    Double.toString(position.longitude),
+                    Double.toString(position.latitude),
+                    Double.toString(distance / 2 * 25000));
 
-        Log.d(TAG, "Geoquery: " + url);
-        new MjestoGetLocationsTask().execute(url);
+            new MjestoGetLocationsTask().execute(url);
+        }
     }
 
     public double getDistanceFromBounds(LatLngBounds latLngBounds) {
         return Math.sqrt(
-                (latLngBounds.northeast.latitude - latLngBounds.southwest.latitude)
-                + (latLngBounds.northeast.longitude - latLngBounds.southwest.longitude));
+                Math.abs((latLngBounds.northeast.latitude - latLngBounds.southwest.latitude)
+                + (latLngBounds.northeast.longitude - latLngBounds.southwest.longitude)));
     }
 
     @Override
@@ -700,10 +738,14 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             }
             else {
                 mCurLocation = location;
-                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
-                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
-                mLocationsMap.put(mCurLocation._id, marker);
-                marker.setTag(location);
+//                TODO: implement canvas drawing to replace this
+//                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
+//                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
+//                mLocationsMap.put(mCurLocation._id, marker);
+//                marker.setTag(location);
+                mFirstClick = null;
+                mClickStatus.setText("First Click");
+                mTileOverlay.clearTileCache();
                 Toast.makeText(getActivity(), "Spot Created Successfully", Toast.LENGTH_LONG).show();
                 mCurDialog.dismiss();
             }

@@ -17,12 +17,24 @@
             android:id="@+id/map"
             android:name="com.google.android.gms.maps.SupportMapFragment" />
 
-        <Button
-            android:id="@+id/b_populate_map"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Populate Map"
-            android:layout_gravity="bottom|end"/>
+            android:layout_gravity="bottom|end"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_click_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="First click"/>
+            <Button
+                android:id="@+id/b_populate_map"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Populate Map"/>
+
+        </LinearLayout>
+
 
         <ProgressBar
             android:id="@+id/pb_load_populate"
