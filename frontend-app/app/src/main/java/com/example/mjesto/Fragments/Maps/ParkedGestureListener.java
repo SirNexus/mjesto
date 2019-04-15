@@ -89,6 +89,7 @@ public class ParkedGestureListener extends GestureDetector.SimpleOnGestureListen
                 Log.d(TAG, "mDifference: " + mDifference);
                 fling.setStartVelocity(mVelocityTracker.getYVelocity(pointerID))
                         .setFriction(1.1f)
+                        .setStartValue(Math.max(1400 - mDifference, Math.min(mWindowSize - mDifference, event.getRawY() - mDifference)))
                         .setMinValue(1400 - mDifference)
                         .setMaxValue(mWindowSize - mDifference)
                         .addUpdateListener(this)
