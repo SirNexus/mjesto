@@ -200,10 +200,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         // Add a marker in Corvallis and move the camera
         LatLng corvallis = new LatLng(44.5646, -123.2620);
-        LatLng testLine = new LatLng(44.5646, -123.27);
-        googleMap.addPolyline(new PolylineOptions()
-                .add(corvallis)
-                .add(testLine));
 
         mMap.setOnMarkerClickListener(this);
         mMap.setOnMapClickListener(this);

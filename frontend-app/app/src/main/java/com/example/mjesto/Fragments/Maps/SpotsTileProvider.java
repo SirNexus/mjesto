@@ -58,20 +58,8 @@ public class SpotsTileProvider extends CanvasTileProvider {
                 "/" + bounds.southwest.latitude +
                 "/" + bounds.northeast.longitude +
                 "/" + bounds.northeast.latitude);
-//        Rect rect = new Rect();
-        LatLng corvallis = new LatLng(44.5646, -123.2620);
+//        LatLng corvallis = new LatLng(44.5646, -123.2620);
 
-        TileProjection.DoublePoint doublePoint = projection.latLngToPoint(corvallis);
-
-
-//        paint.setAlpha(50);
-
-        Paint paint = new Paint();
-        paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(getStrokeWidth(zoom));
-        paint.setColor(ContextCompat.getColor(mContext, R.color.red));
-        paint.setAntiAlias(true);
-        canvas.drawLine((float) doublePoint.getX(), (float) doublePoint.getY(), (float) doublePoint.getX(), (float) doublePoint.getY() + 50, paint);
 
 
         String url = MjestoUtils.getMjestoLocationsUrl(
@@ -80,19 +68,20 @@ public class SpotsTileProvider extends CanvasTileProvider {
                 Double.toString(bounds.northeast.longitude),
                 Double.toString(bounds.northeast.latitude));
 
-//        LocationQuery locationQuery = new LocationQuery();
-//        locationQuery.url = url;
-//        locationQuery.canvas = canvas;
-//        locationQuery.projection = projection;
-//        locationQuery.zoom = zoom;
+        MjestoUtils.Location[] locations;
+        locations = queryLocations(url, canvas, projection, zoom);
+        if (locations != null) {
+            drawLocations(locations, canvas, projection, zoom);
+        }
 
-//        TODO: move http query to own function if works without asynctask
-//        String url = locationQuery.url;
-//        mCanvas = locationQuery.canvas;
-//        Log.d(TAG, "Canvas: " + mCanvas);
-//        mProjection = locationQuery.projection;
-//        mZoom = locationQuery.zoom;
+    }
 
+    private float getStrokeWidth(int zoom) {
+        Double Scale = Math.pow(2, zoom - 13);
+        return Scale.floatValue();
+    }
+
+    private MjestoUtils.Location[] queryLocations(String url, Canvas canvas, TileProjection projection, int zoom) {
         String results = null;
         try {
             results = NetworkUtils.doHttpGet(url);
@@ -104,20 +93,12 @@ public class SpotsTileProvider extends CanvasTileProvider {
 
         if (results != null) {
             MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(results);
-            if (locations != null) {
-                drawLocations(locations, canvas, projection, zoom);
-            }
+            return locations;
         } else {
-            Log.d(TAG, "Error Populating");
+            Log.d(TAG, "Error converting response to Location[]");
+            return null;
         }
 
-//        new MjestoGetLocationsTask().execute(locationQuery);
-
-    }
-
-    private float getStrokeWidth(int zoom) {
-        Double Scale = Math.pow(2, zoom - 14);
-        return Scale.floatValue();
     }
 
     private void drawLocations(MjestoUtils.Location[] locations, Canvas canvas, TileProjection projection, int zoom) {
@@ -133,51 +114,24 @@ public class SpotsTileProvider extends CanvasTileProvider {
 
             Paint paint = new Paint();
             paint.setStyle(Paint.Style.STROKE);
-//            paint.setStrokeWidth(getStrokeWidth(zoom));
-            paint.setStrokeWidth(5);
-            paint.setColor(ContextCompat.getColor(mContext, R.color.red));
+            paint.setStrokeWidth(getStrokeWidth(zoom));
+
+            switch (location.restriction) {
+                case "restricted":
+                    paint.setColor(ContextCompat.getColor(mContext, R.color.red));
+                    break;
+                case "limited":
+                    paint.setColor(ContextCompat.getColor(mContext, R.color.orange));
+                    break;
+                case "no restriction":
+                    paint.setColor(ContextCompat.getColor(mContext, R.color.green));
+                    break;
+                default:
+                    paint.setColor(Color.BLACK);
+            }
+
             paint.setAntiAlias(true);
             canvas.drawLine((float) beginPoint.getX(), (float) beginPoint.getY(), (float) endPoint.getX(), (float) endPoint.getY(), paint);
-        }
-    }
-
-    class MjestoGetLocationsTask extends AsyncTask<LocationQuery, Void, String> {
-
-        private Canvas mCanvas;
-        private TileProjection mProjection;
-        private int mZoom;
-
-        @Override
-        protected String doInBackground(LocationQuery... locationQueries) {
-            LocationQuery locationQuery = locationQueries[0];
-            String url = locationQuery.url;
-            mCanvas = locationQuery.canvas;
-            Log.d(TAG, "Canvas: " + mCanvas);
-            mProjection = locationQuery.projection;
-            mZoom = locationQuery.zoom;
-
-            String results = null;
-            try {
-                results = NetworkUtils.doHttpGet(url);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            return results;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            Log.d(TAG, "Get response: " + s);
-
-            if (s != null) {
-                MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(s);
-                if (locations != null) {
-                    drawLocations(locations, mCanvas, mProjection, mZoom);
-                }
-            } else {
-                Log.d(TAG, "Error Populating");
-            }
         }
     }
 }
