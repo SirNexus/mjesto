@@ -42,11 +42,27 @@ var LocationSchema = new Schema({
     restriction: {
         type: String,
         enum: ["no restriction", "limited", "restricted"],
-        required: "Location must have a restriction",
-        validate: [validateLocation, "limit must be defined for limited restriction"]
+        required: "Location must have a restriction"
+    },
+    metered: {
+        type: Boolean,
+        validate: [validateLimitedAttr, "If restriction is limited, metered must be specified"]
+    },
+    all_day: {
+        type: Boolean,
+        validate: [validateDay, "if restriction is not restricted, all_day must be specified"]
     },
     limit: {
-        type: Number,
+        type: String,
+        validate: [validateLocation, "limit must be defined for limited restriction"]
+    },
+    restriction_start: {
+        type: String,
+        validate: [validateRestrictionTime, "restriction start must be specified when all_day is false"]
+    },
+    restriction_end: {
+        type: String,
+        validate: [validateRestrictionTime, "restriction end must be specified when all_day is false"]
     },
     beginCoords: {
         type: [Number],
@@ -62,17 +78,17 @@ var LocationSchema = new Schema({
     }
 });
 
-function validateLocation (val) {
-    if (val == "limited" && this.limit == undefined) {
+function validateLocation(val) {
+    if (val == undefined && this.restriction == "limited") {
         return false;
-    } else if (val != "limited") {
+    } else if (this.restriction != "limited") {
         this.limit = undefined;
         return true;
     }
     return true
 }
 
-function validateCoordinates (val) {
+function validateCoordinates(val) {
     if (val.length != 2) {
         return false;
     }
@@ -82,12 +98,26 @@ function validateCoordinates (val) {
     return true;
 }
 
-function validateArea(val) {
-    console.log("validate area value: " + val);
+function validateLimitedAttr(val) {
+    if (val == undefined && this.restriction == "limited") {
+        return false;
+    }
+    return true;
+}
 
-    val.forEach(function(element) {
-        console.log(element);
-    });
+function validateDay(val) {
+    if (val == undefined && this.restriction != "restricted") {
+        return false
+    }
+    return true;
+}
+
+function validateRestrictionTime(val) {
+    console.log("restriction: " + val);
+    if (val == undefined && this.all_day == false) {
+        return false;
+    }
+    return true;
 }
 
 module.exports = {
