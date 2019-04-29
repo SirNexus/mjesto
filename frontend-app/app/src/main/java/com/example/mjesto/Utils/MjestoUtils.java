@@ -16,12 +16,21 @@ public class MjestoUtils {
     private final static String MJESTO_PARK_URL = "park";
     private final static String MJESTO_USERS_URL = "users";
 
+
+    public static final String DEFAULT_RESTRICTION_TIME = "9:00AM - 5:00PM";
+    public static final String DEFAULT_RESTRICTION_START = "9:00AM";
+    public static final String DEFAULT_RESTRICTION_END = "5:00PM";
+
     public static class Location {
         public String _id;
         public ArrayList<Double> beginCoords;
         public ArrayList<Double> endCoords;
         public String restriction;
-        public Integer limit;
+        public Boolean metered;
+        public Boolean allDay;
+        public String restrictionStart;
+        public String restrictionEnd;
+        public String limit;
         public JsonObject errors;
 
         public Location() {
@@ -45,6 +54,27 @@ public class MjestoUtils {
         public Integer numParked;
     }
 
+    public static String buildTime(int hour, int min) {
+        String AM_PM = (hour <= 12) ? "AM" : "PM";
+        String hourStr = (hour <= 12) ? String.valueOf(hour) : String.valueOf(hour - 12);
+        String minStr = (String.valueOf(min).length() == 1) ? "0" + min : String.valueOf(min);
+
+        return hourStr + ":" + minStr + AM_PM;
+    }
+
+//    take time of format "9:00PM" and return String array of format ["21", "0"]
+    public static Integer[] decodeTime(String time) {
+        Integer[] returnTimes = new Integer[2];
+        String[] times = time.split(":");
+        times[1] = times[1].trim();
+        times[1].replaceAll("[^0-9]", "");
+        Integer hourInt = Integer.valueOf(times[0].trim());
+        returnTimes[0] = time.contains("PM") ? hourInt + 12 : hourInt;
+        returnTimes[1] = Integer.valueOf(times[1]);
+        return returnTimes;
+
+
+    }
 
     public static String getMjestoLocationsUrl() {
         return Uri.parse(MJESTO_BASE_URL).buildUpon()

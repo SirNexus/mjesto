@@ -53,14 +53,14 @@ public class ParkedFragment extends Fragment {
         mParkingStatusTV.setText(PARKED_STATE);
     }
 
-    public static void setTimer(int hours) {
+    public static void setTimer(int hours, int minutes) {
         Log.d(TAG, "setTimer: " + hours);
 
         mTimeRemainingLabelTV.setVisibility(View.VISIBLE);
         mTimeRemainingTV.setVisibility(View.VISIBLE);
         mParkingStatusTV.setText(PARKED_STATE);
 
-        mCountdownTimer = new CountDownTimer(hours * 60 * 60 * 1000, 1000) {
+        mCountdownTimer = new CountDownTimer(hours * 60 * 60 * 1000 + minutes * 60 * 1000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 int hours = (int) (TimeUnit.MILLISECONDS.toHours(millisUntilFinished));
@@ -74,8 +74,6 @@ public class ParkedFragment extends Fragment {
                 } else if (seconds != 0) {
                     mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d", seconds));
                 }
-
-                Log.d(TAG, "time remaining: " + millisUntilFinished);
             }
 
             @Override

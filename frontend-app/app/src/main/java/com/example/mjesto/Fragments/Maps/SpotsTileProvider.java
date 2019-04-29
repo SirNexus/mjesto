@@ -121,7 +121,11 @@ public class SpotsTileProvider extends CanvasTileProvider {
                     paint.setColor(ContextCompat.getColor(mContext, R.color.red));
                     break;
                 case "limited":
-                    paint.setColor(ContextCompat.getColor(mContext, R.color.orange));
+                    if (location.metered) {
+                        paint.setColor(ContextCompat.getColor(mContext, R.color.orange));
+                    } else {
+                        paint.setColor(ContextCompat.getColor(mContext, R.color.yellow));
+                    }
                     break;
                 case "no restriction":
                     paint.setColor(ContextCompat.getColor(mContext, R.color.green));

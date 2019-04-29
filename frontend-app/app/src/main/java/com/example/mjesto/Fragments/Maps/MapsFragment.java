@@ -2,9 +2,10 @@ package com.example.mjesto.Fragments.Maps;
 
 import android.Manifest;
 import android.app.Dialog;
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Typeface;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -28,7 +30,6 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +37,8 @@ import com.example.mjesto.R;
 import com.example.mjesto.Utils.MjestoUtils;
 import com.example.mjesto.Utils.NetworkUtils;
 import com.example.mjesto.Utils.UserUtils;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -47,6 +50,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.maps.model.TileProvider;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -59,7 +63,6 @@ import static com.example.mjesto.Utils.MjestoUtils.getMjestoLocationsUrl;
 
 public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener,
-        GoogleMap.OnMarkerClickListener,
         GoogleMap.OnMapClickListener,
         GoogleMap.OnMapLongClickListener,
         GoogleMap.OnCameraIdleListener,
@@ -85,21 +88,25 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private GoogleMap mMap;
     private TileOverlay mTileOverlay;
     private DrawerLayout mDrawyerLayout;
-    private Button mPopulateButton;
-    private ProgressBar mPopulateProgress;
     private LinearLayout mSpotLimitedLL;
     private ArrayList<String> mSpotTypes;
     private static String mLimitedValue;
-//    TODO: remove marker
-    private Marker mCurMarker;
+    private static Boolean mSpotMeteredB;
+    private static Boolean mSpotAllDay;
+    private static TextView mSpotStartTimeTV;
+    private static TextView mSpotEndTimeTV;
+    private static String mSpotStartTime;
+    private static String mSpotEndTime;
     private Dialog mCurDialog;
     private FrameLayout mMapsFL;
+    private FusedLocationProviderClient mFusedLocationClient;
 
     private MjestoUtils.Location mCurLocation;
     private LatLng mCurLatLng;
     private String mParkedLocationID;
     private String mCurUser;
     private Map<String, Marker> mLocationsMap;
+
 
     public static synchronized MapsFragment getInstance() {
         if (mapsFragmentInstance == null) {
@@ -120,14 +127,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mapFragment.getMapAsync(this);
 
         mDrawyerLayout = mView.findViewById(R.id.drawer);
-        mPopulateProgress = mView.findViewById(R.id.pb_load_populate);
-        mPopulateButton = mView.findViewById(R.id.b_populate_map);
-        mPopulateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                doMjestoGetLocations();
-            }
-        });
         mSwipeButton = mView.findViewById(R.id.parked_swipe_ib);
         mMapsFL = mView.findViewById(R.id.fl_maps);
         ParkedFragment parkedFragment = new ParkedFragment();
@@ -136,8 +135,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         fragmentTransaction.commit();
 
         mFirstClick = null;
-//        TODO: remove marker
-        mCurMarker = null;
+        mLimitedValue = null;
+        mSpotMeteredB = null;
         mCurLocation = null;
         mCurLatLng = null;
         mParkedLocationID = null;
@@ -194,10 +193,29 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        TypedValue tv = new TypedValue();
+        // move my location button down under toolbar
+        if (getActivity().getTheme().resolveAttribute(R.attr.actionBarSize, tv, true))
+        {
+            int actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data,getResources().getDisplayMetrics());
+            mMap.setPadding(0, actionBarHeight, 0, 0);
+        }
 
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
+            mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
+            mFusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(getActivity(), new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            // Got last known location. In some rare situations this can be null.
+                            if (location != null) {
+                                LatLng myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 15));
+                            }
+                        }
+                    });
         } else {
             Toast.makeText(getActivity(), "Don't have permission", Toast.LENGTH_LONG).show();
         }
@@ -207,13 +225,10 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         // Add a marker in Corvallis and move the camera
         LatLng corvallis = new LatLng(44.5646, -123.2620);
 
-        mMap.setOnMarkerClickListener(this);
         mMap.setOnMapClickListener(this);
         mMap.setOnMapLongClickListener(this);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(corvallis, 14));
-//        TODO: reenable this
-//        mMap.setOnCameraIdleListener(this);
 
         TileProvider tileProvider = new SpotsTileProvider(getActivity());
         mTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(tileProvider));
@@ -233,11 +248,13 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mParkedLocationID = location._id;
         Log.d(TAG, "location restriction: " + location.restriction);
         if (location.restriction.equals("limited")) {
-            ParkedFragment.setTimer(location.limit);
+            String[] limit = location.limit.split(":");
+            int hours = Integer.parseInt(limit[0]);
+            int minutes = Integer.parseInt(limit[1]);
+            ParkedFragment.setTimer(hours, minutes);
         } else {
             ParkedFragment.setParked();
         }
-//        MainActivity.updateFragment(new ParkedFragment(), "parked");
     }
 
     public void unparkUser(String locationID) {
@@ -292,7 +309,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private void doMjestoGetLocationNearLatLng(LatLng latLng) {
 
         String url = getMjestoLocationsUrl(String.valueOf(latLng.longitude), String.valueOf(latLng.latitude), LOCATION_CLICK_FLEXIBILITY);
-        new MjestoGetLocationNearLatLng().execute(url);
+        new MjestoGetLocationNearLatLngTask().execute(url);
     }
 
     private void doMjestoPatchLocation(String id, MjestoUtils.Location location) {
@@ -375,8 +392,23 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     }
 
     public static void setMLimitedValue(String limitedValue) {
-        Log.d(TAG, "setting limited value: " + limitedValue);
         mLimitedValue = limitedValue;
+    }
+
+    public static void setmSpotMeteredB(Boolean meteredB) {
+        mSpotMeteredB = meteredB;
+    }
+
+    public static void setmSpotStartTimeTVText(String startTime) {
+        mSpotStartTimeTV.setText(startTime);
+    }
+
+    public static void setmSpotEndTimeTVText(String endTime) {
+        mSpotEndTimeTV.setText(endTime);
+    }
+
+    public static void setmSpotAllDay(Boolean allDay) {
+        mSpotAllDay = allDay;
     }
 
     public void findLocationNearLatLng(LatLng latLng, MjestoUtils.Location[] locations) {
@@ -415,148 +447,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         }
     }
 
-    public void openSpotDialog(MjestoUtils.Location location) {
-        mCurLocation = location;
-        mCurDialog = openDialog(R.layout.view_spot);
-
-        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
-        TextView restriction_tv = mCurDialog.findViewById(R.id.s_spot_type);
-        restriction_tv.setText(mCurLocation.restriction);
-        TextView limit_tv = mCurDialog.findViewById(R.id.tv_spot_limit);
-        Button parkButton = mCurDialog.findViewById(R.id.b_spot_park);
-        parkButton.setOnClickListener(this);
-
-        Log.d(TAG, "mParkedLocationID: " + mParkedLocationID);
-
-        if (mCurLocation._id.equals(mParkedLocationID)) {
-            parkButton.setText("Leave Parking");
-        }
-
-        if (mCurLocation.restriction.equals("limited")) {
-            mSpotLimitedLL.setVisibility(View.VISIBLE);
-            if (mCurLocation.limit != null) {
-                limit_tv.setText(String.valueOf(mCurLocation.limit));
-            } else {
-                limit_tv.setText(0);
-            }
-
-        }
-
-        TextView editSpot = mCurDialog.findViewById(R.id.tv_edit_spot);
-        editSpot.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                openEditSpotDialog();
-            }
-        });
-
-    }
-
-    @Override
-    public boolean onMarkerClick(Marker marker) {
-//        TODO: remove marker listener
-        mCurMarker = marker;
-        mCurLocation = (MjestoUtils.Location) marker.getTag();
-        mCurDialog = openDialog(R.layout.view_spot);
-
-        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
-        TextView restriction_tv = mCurDialog.findViewById(R.id.s_spot_type);
-        restriction_tv.setText(mCurLocation.restriction);
-        TextView limit_tv = mCurDialog.findViewById(R.id.tv_spot_limit);
-        Button parkButton = mCurDialog.findViewById(R.id.b_spot_park);
-        parkButton.setOnClickListener(this);
-
-        Log.d(TAG, "mParkedLocationID: " + mParkedLocationID);
-
-        if (mCurLocation._id.equals(mParkedLocationID)) {
-            parkButton.setText("Leave Parking");
-        }
-
-        if (mCurLocation.restriction.equals("limited")) {
-            mSpotLimitedLL.setVisibility(View.VISIBLE);
-            if (mCurLocation.limit != null) {
-                limit_tv.setText(String.valueOf(mCurLocation.limit));
-            } else {
-                limit_tv.setText(0);
-            }
-
-        }
-
-        TextView editSpot = mCurDialog.findViewById(R.id.tv_edit_spot);
-        editSpot.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                openEditSpotDialog();
-            }
-        });
-
-        return true;
-    }
-
-    public void openEditSpotDialog() {
-
-        if (mCurDialog != null) {
-            mCurDialog.dismiss();
-        }
-
-        mCurDialog = openDialog(R.layout.edit_spot);
-
-        mAdapter = new SpotPagerAdapter(getActivity(), mCurLocation);
-        mPager = mCurDialog.findViewById(R.id.edit_spot_vp);
-        mPager.setAdapter(mAdapter);
-
-        mTabLayout = mCurDialog.findViewById(R.id.edit_spot_tl);
-        mTabLayout.setupWithViewPager(mPager);
-
-        Button spotSubmitB = mCurDialog.findViewById(R.id.b_spot_submit);
-        spotSubmitB.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                MjestoUtils.Location updateLocation = new MjestoUtils.Location();
-                String title = (String) mAdapter.getPageTitle(mPager.getCurrentItem());
-
-                // Set to null to prevent being added to json for PATCH
-                updateLocation.restriction = title;
-                updateLocation.beginCoords = null;
-                updateLocation.endCoords = null;
-
-
-                if (title.equals("limited")) {
-                    if (mLimitedValue.equals("") || mLimitedValue.equals("0")) {
-                        Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    Integer limit = Integer.parseInt(mLimitedValue);
-                    Log.d(TAG, "Number of limit: " + limit);
-                    updateLocation.limit = limit;
-                }
-
-                doMjestoPatchLocation(mCurLocation._id, updateLocation);
-            }
-        });
-
-        Button spotDeleteB = mCurDialog.findViewById(R.id.b_spot_delete);
-        spotDeleteB.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v) {
-                doMjestoDeleteLocation(mCurLocation);
-            }
-        });
-    }
-
-    public Dialog openDialog(Integer view) {
-        final Dialog dialog = new Dialog(getActivity());
-        dialog.setContentView(view);
-        dialog.setTitle(R.string.spot_view_more);
-        dialog.show();
-
-        return dialog;
-
-    }
-
-    @Override
-    public void onMapClick(final LatLng latLng) {
-
+    public void openNewSpotDialog(final LatLng latLng) {
         mClickStatus = mView.findViewById(R.id.tv_click_status);
 
         if (mFirstClick == null) {
@@ -565,11 +456,18 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             return;
         }
 
-//        TODO: implement first and second click and then upload line parking spot
+        mCurDialog = openDialog(R.layout.edit_spot, getActivity());
 
-        mCurDialog = openDialog(R.layout.edit_spot);
+        mCurLocation = new MjestoUtils.Location();
+        mSpotStartTime = MjestoUtils.DEFAULT_RESTRICTION_START;
+        mSpotEndTime = MjestoUtils.DEFAULT_RESTRICTION_END;
+        mSpotMeteredB = false;
+        mSpotAllDay = false;
 
-        mCurLocation = null;
+        mCurLocation.restrictionStart = mSpotStartTime;
+        mCurLocation.restrictionEnd = mSpotEndTime;
+        mCurLocation.metered = mSpotMeteredB;
+        mCurLocation.allDay = mSpotAllDay;
 
         mAdapter = new SpotPagerAdapter(getActivity(), mCurLocation);
         mPager = mCurDialog.findViewById(R.id.edit_spot_vp);
@@ -592,17 +490,20 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 newLocation.endCoords.add(latLng.latitude);
 
                 newLocation.restriction = title;
+                newLocation.metered = mSpotMeteredB;
+                newLocation.restrictionStart = mSpotStartTime;
+                newLocation.restrictionEnd = mSpotEndTime;
+                newLocation.allDay = mSpotAllDay;
 
+                Log.d(TAG, "Restriction: " + mSpotStartTime + " - " + mSpotEndTime);
 
                 if (title.equals("limited")) {
-                    String limitString = mLimitedValue;
-                    if (limitString.equals("") || limitString.equals("0")) {
+                    if (mLimitedValue.equals("") || mLimitedValue.equals("0:00")) {
                         Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    Integer limit = Integer.parseInt(limitString);
-                    Log.d(TAG, "Number of limit: " + limit);
-                    newLocation.limit = limit;
+                    Log.d(TAG, "Limit: " + mLimitedValue);
+                    newLocation.limit = mLimitedValue;
                 }
 
 
@@ -619,18 +520,184 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 mCurDialog.dismiss();
             }
         });
+    }
 
+    public void openSpotDialog(MjestoUtils.Location location) {
+        mCurLocation = location;
+        mCurDialog = openDialog(R.layout.view_spot, getActivity());
+
+        mSpotLimitedLL = mCurDialog.findViewById(R.id.ll_spot_limited);
+        TextView restriction_tv = mCurDialog.findViewById(R.id.s_spot_type);
+        restriction_tv.setText(mCurLocation.restriction);
+        TextView limit_tv = mCurDialog.findViewById(R.id.tv_spot_limit);
+        LinearLayout hours_ll = mCurDialog.findViewById(R.id.ll_spot_hours);
+        TextView hours_tv = mCurDialog.findViewById(R.id.tv_spot_hours);
+        String hoursStr = mCurLocation.restrictionStart + " - " + mCurLocation.restrictionEnd;
+        Button parkButton = mCurDialog.findViewById(R.id.b_spot_park);
+        parkButton.setOnClickListener(this);
+
+        Log.d(TAG, "mParkedLocationID: " + mParkedLocationID);
+
+        if (mCurLocation._id.equals(mParkedLocationID)) {
+            parkButton.setText("Leave Parking");
+        }
+
+        if (mCurLocation.restriction.equals("limited")) {
+            mSpotLimitedLL.setVisibility(View.VISIBLE);
+            hours_ll.setVisibility(View.VISIBLE);
+
+            if (mCurLocation.limit != null) {
+                limit_tv.setText(String.valueOf(mCurLocation.limit));
+                hours_tv.setText(hoursStr);
+            } else {
+                limit_tv.setText(0);
+                hours_tv.setText("NaN");
+            }
+
+        }
+
+        TextView editSpot = mCurDialog.findViewById(R.id.tv_edit_spot);
+        editSpot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openEditSpotDialog();
+            }
+        });
+
+    }
+
+    public void openEditSpotDialog() {
+        if (mCurDialog != null) {
+            mCurDialog.dismiss();
+        }
+
+        mCurDialog = openDialog(R.layout.edit_spot, getActivity());
+
+        mAdapter = new SpotPagerAdapter(getActivity(), mCurLocation);
+        mPager = mCurDialog.findViewById(R.id.edit_spot_vp);
+        mPager.setAdapter(mAdapter);
+
+        mTabLayout = mCurDialog.findViewById(R.id.edit_spot_tl);
+        mTabLayout.setupWithViewPager(mPager);
+
+        Button spotSubmitB = mCurDialog.findViewById(R.id.b_spot_submit);
+        spotSubmitB.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MjestoUtils.Location updateLocation = new MjestoUtils.Location();
+                String title = (String) mAdapter.getPageTitle(mPager.getCurrentItem());
+
+                // Set to null to prevent being added to json for PATCH
+                updateLocation.restriction = title;
+
+                updateLocation.beginCoords = null;
+                updateLocation.endCoords = null;
+
+                updateLocation.metered = mSpotMeteredB;
+                updateLocation.restrictionStart = mSpotStartTime;
+                updateLocation.restrictionEnd = mSpotEndTime;
+                updateLocation.allDay = mSpotAllDay;
+
+                if (title.equals("limited")) {
+                    if (mLimitedValue.equals("0:00")) {
+                        Toast.makeText(getActivity(), "Must enter a time limit", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    Log.d(TAG, "Number of limit: " + mLimitedValue);
+                    updateLocation.limit = mLimitedValue;
+                }
+
+                doMjestoPatchLocation(mCurLocation._id, updateLocation);
+            }
+        });
+
+        Button spotDeleteB = mCurDialog.findViewById(R.id.b_spot_delete);
+        spotDeleteB.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                doMjestoDeleteLocation(mCurLocation);
+            }
+        });
+    }
+
+    public static Dialog openDialog(Integer view, Context context) {
+        final Dialog dialog = new Dialog(context);
+        dialog.setContentView(view);
+        dialog.setTitle(R.string.spot_view_more);
+        dialog.show();
+
+        return dialog;
+
+    }
+
+    public static void openEditHoursDialog(Context context, View v) {
+        Button hoursButton = (Button) v;
+        String[] hoursArr = ((String) hoursButton.getText()).split("-");
+        final Dialog dialog = openDialog(R.layout.edit_spot_hours, context);
+        SpotHoursPagerAdapter adapter = new SpotHoursPagerAdapter(context, hoursArr[0], hoursArr[1]);
+        ViewPager pager = dialog.findViewById(R.id.edit_hours_vp);
+        pager.setAdapter(adapter);
+
+        mSpotStartTimeTV = dialog.findViewById(R.id.tv_start_time);
+        mSpotEndTimeTV = dialog.findViewById(R.id.tv_end_time);
+
+        Button hoursSubmit = dialog.findViewById(R.id.b_hours_submit);
+        hoursSubmit.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSpotStartTime = (String) mSpotStartTimeTV.getText();
+                mSpotEndTime = (String) mSpotEndTimeTV.getText();
+                SpotPagerAdapter.setmSpotHoursBText(mSpotStartTime, mSpotEndTime);
+                dialog.dismiss();
+            }
+        });
+
+        Button hoursCancel = dialog.findViewById(R.id.b_hours_cancel);
+        hoursCancel.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        pager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int i, float v, int i1) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                if (position == 0) {
+                    mSpotStartTimeTV.setTypeface(null, Typeface.BOLD);
+                    mSpotEndTimeTV.setTypeface(null, Typeface.NORMAL);
+                } else if (position == 1) {
+                    mSpotEndTimeTV.setTypeface(null, Typeface.BOLD);
+                    mSpotStartTimeTV.setTypeface(null, Typeface.NORMAL);
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int i) {
+
+            }
+        });
+
+        TabLayout tabLayout = dialog.findViewById(R.id.edit_hours_tl);
+        tabLayout.setupWithViewPager(pager);
 
 
     }
 
     @Override
-    public void onMapLongClick(LatLng latLng) {
+    public void onMapClick(final LatLng latLng) {
+        openNewSpotDialog(latLng);
+    }
 
+    @Override
+    public void onMapLongClick(LatLng latLng) {
         mCurLatLng = latLng;
         doMjestoGetLocationNearLatLng(mCurLatLng);
-
-
     }
 
     @Override
@@ -702,8 +769,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            mPopulateButton.setVisibility(View.INVISIBLE);
-            mPopulateProgress.setVisibility(View.VISIBLE);
         }
 
         @Override
@@ -724,16 +789,11 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             Log.d(TAG, "Get response: " + s);
 
             if (s != null) {
-                mPopulateButton.setText("Populate Map");
                 MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(s);
                 if (locations != null) {
                     populateMap(locations);
                 }
-            } else {
-                mPopulateButton.setText("Error Populating");
             }
-            mPopulateButton.setVisibility(View.VISIBLE);
-            mPopulateProgress.setVisibility(View.INVISIBLE);
 
         }
     }
@@ -767,7 +827,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         }
     }
 
-    class MjestoGetLocationNearLatLng extends AsyncTask<String, Void, String> {
+    class MjestoGetLocationNearLatLngTask extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... urls) {
@@ -867,22 +927,13 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         @Override
         protected void onPostExecute(String s) {
-
-            MjestoUtils.Location location = null;
-
-            location = MjestoUtils.getLocationFromJson(s);
+            MjestoUtils.Location location = MjestoUtils.getLocationFromJson(s);
             if (location.errors != null) {
                 Log.d(TAG, location.errors.toString());
                 Toast.makeText(getActivity(), "Spot Update Failed", Toast.LENGTH_LONG).show();
             }
             else {
                 mCurLocation = location;
-//                TODO: implement canvas drawing to replace this
-//                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
-//                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
-//                mLocationsMap.put(mCurLocation._id, marker);
-//                marker.setTag(location);
-//
                 mFirstClick = null;
                 mClickStatus.setText("First Click");
                 mTileOverlay.clearTileCache();
@@ -919,8 +970,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             if (s.equals("\"Location Delete Successful\"")) {
                 mCurDialog.dismiss();
                 mLocationsMap.remove(mCurLocation._id);
-//                TODO: remove marker
-//                mCurMarker.remove();
                 mTileOverlay.clearTileCache();
                 Toast.makeText(getActivity(), "Location Deleted Successfully", Toast.LENGTH_LONG).show();
             }
@@ -952,8 +1001,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                 if (park != null) {
                     doMjestoGetLocationById(park.location);
                 }
-            } else {
-                mPopulateButton.setText("Error Populating");
             }
         }
     }

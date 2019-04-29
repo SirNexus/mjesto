@@ -52,10 +52,30 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/ll_spot_hours"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:visibility="invisible">
+
+        <TextView
+            android:layout_width="42dp"
+            android:layout_height="wrap_content"
+            android:text="@string/spot_label_restriction_hours" />
+
+        <TextView
+            android:id="@+id/tv_spot_hours"
+            android:textSize="22sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="275dp"
+        android:layout_marginTop="245dp"
         android:layout_gravity="center"
         android:padding="8dp">
 
