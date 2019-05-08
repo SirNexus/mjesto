@@ -56,6 +56,8 @@ import com.google.gson.JsonParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,8 +70,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         GoogleMap.OnCameraIdleListener,
         OnMapReadyCallback,
         AdapterView.OnItemSelectedListener,
-        View.OnClickListener,
-        SharedPreferences.OnSharedPreferenceChangeListener {
+        View.OnClickListener {
 
     private static final String TAG = MapsFragment.class.getSimpleName();
     private static final String LOCATION_CLICK_FLEXIBILITY = "250";
@@ -350,7 +351,22 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
         Log.d(TAG, "User: " + mCurUser);
 
-        new MjestoParkUserTask().execute(url, mCurUser, mCurLocation._id);
+        String endTime = null;
+
+        if (mCurLocation.restriction.equals("limited")) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(new Date());
+            String[] limitArr = mCurLocation.limit.split(":");
+            int hour = Integer.parseInt(limitArr[0]);
+            int minute = Integer.parseInt(limitArr[1]);
+            calendar.add(Calendar.HOUR_OF_DAY, hour);
+            calendar.add(Calendar.MINUTE, minute);
+
+            Log.d(TAG, "End time: " + calendar.getTime());
+            endTime = String.valueOf(calendar.getTime());
+        }
+
+        new MjestoParkUserTask().execute(url, mCurUser, mCurLocation._id, endTime);
     }
 
     private void doMjestoIncParkedUser() {
@@ -751,19 +767,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         }
     }
 
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(UserUtils.CUR_USER_PARKED)) {
-            String parked = sharedPreferences.getString(key, "");
-            if (!parked.equals("")) {
-
-            }
-        }
-    }
-
-
-
-
     class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
 
         @Override
@@ -887,8 +890,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             location = MjestoUtils.getLocationFromJson(s);
             if (location != null) {
                 mCurLocation = location;
-//                TODO: remove marker
-//                mCurMarker.setTag(location);
                 mTileOverlay.clearTileCache();
                 Toast.makeText(getActivity(), "Spot Updated Successfully", Toast.LENGTH_LONG).show();
                 mCurDialog.dismiss();
@@ -1012,10 +1013,12 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             String url = strings[0];
             String userID = strings[1];
             String locationID = strings[2];
+            String endDate = strings[3];
 
             MjestoUtils.Park park = new MjestoUtils.Park();
             park.user = userID;
             park.location = locationID;
+            park.endDate = endDate;
 
             String json = MjestoUtils.buildJsonFromPark(park);
 

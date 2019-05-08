@@ -47,6 +47,7 @@ public class MjestoUtils {
     public static class Park {
         public String user;
         public String location;
+        public String endDate;
     }
 
     public static class User {
