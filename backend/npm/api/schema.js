@@ -26,6 +26,9 @@ var ParkedSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'LocationSchema',
         required: true
+    },
+    endDate: {
+        type: String
     }
 });
 
@@ -48,7 +51,7 @@ var LocationSchema = new Schema({
         type: Boolean,
         validate: [validateLimitedAttr, "If restriction is limited, metered must be specified"]
     },
-    all_day: {
+    allDay: {
         type: Boolean,
         validate: [validateDay, "if restriction is not restricted, all_day must be specified"]
     },
@@ -56,11 +59,11 @@ var LocationSchema = new Schema({
         type: String,
         validate: [validateLocation, "limit must be defined for limited restriction"]
     },
-    restriction_start: {
+    restrictionStart: {
         type: String,
         validate: [validateRestrictionTime, "restriction start must be specified when all_day is false"]
     },
-    restriction_end: {
+    restrictionEnd: {
         type: String,
         validate: [validateRestrictionTime, "restriction end must be specified when all_day is false"]
     },

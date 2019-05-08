@@ -172,9 +172,10 @@ function getLocationsInBox(req, res) {
 }
 
 function deleteLocationByID(req, res) {
-    Location.findByIdAndDelete(req.params.locationID, function(err) {
+    Location.findByIdAndDelete(req.params.locationID, function(err, location) {
         if (err) res.status(400).send(err);
-        else res.json("Location Delete Successful");
+        else if (location != null) res.json("Location Delete Successful")
+        else res.status(404).send("Location Not Found");
     });
 
 }
