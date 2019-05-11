@@ -27,6 +27,7 @@ import com.example.mjesto.Fragments.ProfileFragment;
 import com.example.mjesto.Fragments.WelcomeFragment;
 import com.example.mjesto.Fragments.WelcomeParkedFragment;
 import com.example.mjesto.Utils.UserUtils;
+import com.example.mjesto.Utils.ViewModels.MainViewModel;
 
 import java.io.Serializable;
 

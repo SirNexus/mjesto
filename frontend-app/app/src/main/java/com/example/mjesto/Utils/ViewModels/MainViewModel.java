@@ -1,12 +1,8 @@
-package com.example.mjesto;
+package com.example.mjesto.Utils.ViewModels;
 
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
-import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.util.Log;
-
-import java.io.Serializable;
 
 public class MainViewModel extends ViewModel {
 

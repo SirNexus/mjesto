@@ -37,7 +37,7 @@ import android.widget.Toast;
 import com.example.mjesto.R;
 import com.example.mjesto.Utils.MjestoUtils;
 import com.example.mjesto.Utils.NetworkUtils;
-import com.example.mjesto.Utils.ParkedViewModel;
+import com.example.mjesto.Utils.ViewModels.ParkedViewModel;
 import com.example.mjesto.Utils.UserUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -59,10 +59,7 @@ import com.google.gson.JsonParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.example.mjesto.Utils.MjestoUtils.getMjestoLocationsUrl;
 

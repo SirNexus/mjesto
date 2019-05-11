@@ -1,7 +1,6 @@
 package com.example.mjesto.Fragments.Maps;
 
 import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -14,14 +13,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.mjesto.MainViewModel;
 import com.example.mjesto.R;
-import com.example.mjesto.Utils.ParkedViewModel;
-
-import java.time.Period;
-import java.util.Date;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
+import com.example.mjesto.Utils.ViewModels.ParkedViewModel;
 
 public class ParkedFragment extends Fragment {
 

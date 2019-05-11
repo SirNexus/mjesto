@@ -8,7 +8,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,7 +17,7 @@ import com.example.mjesto.Fragments.Maps.MapsFragment;
 import com.example.mjesto.Fragments.Maps.ParkedFragment;
 import com.example.mjesto.MainActivity;
 import com.example.mjesto.R;
-import com.example.mjesto.Utils.ParkedViewModel;
+import com.example.mjesto.Utils.ViewModels.ParkedViewModel;
 import com.example.mjesto.Utils.UserUtils;
 
 import java.util.Date;

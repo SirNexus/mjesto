@@ -1,10 +1,9 @@
-package com.example.mjesto.Utils;
+package com.example.mjesto.Utils.ViewModels;
 
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
 import android.os.CountDownTimer;
 import android.util.Log;
-import android.view.View;
 
 import java.util.Date;
 import java.util.Locale;
