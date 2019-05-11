@@ -2,6 +2,7 @@ package com.example.mjesto.Fragments.Maps;
 
 import android.Manifest;
 import android.app.Dialog;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -36,6 +37,7 @@ import android.widget.Toast;
 import com.example.mjesto.R;
 import com.example.mjesto.Utils.MjestoUtils;
 import com.example.mjesto.Utils.NetworkUtils;
+import com.example.mjesto.Utils.ParkedViewModel;
 import com.example.mjesto.Utils.UserUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -47,6 +49,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.maps.model.TileProvider;
@@ -67,7 +70,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         GoogleMap.OnMyLocationClickListener,
         GoogleMap.OnMapClickListener,
         GoogleMap.OnMapLongClickListener,
-        GoogleMap.OnCameraIdleListener,
         OnMapReadyCallback,
         AdapterView.OnItemSelectedListener,
         View.OnClickListener {
@@ -101,12 +103,13 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     private Dialog mCurDialog;
     private FrameLayout mMapsFL;
     private FusedLocationProviderClient mFusedLocationClient;
+    private ParkedViewModel mParkedViewModel;
 
     private MjestoUtils.Location mCurLocation;
     private LatLng mCurLatLng;
     private String mParkedLocationID;
     private String mCurUser;
-    private Map<String, Marker> mLocationsMap;
+    private Marker mParkedMarker;
 
 
     public static synchronized MapsFragment getInstance() {
@@ -142,7 +145,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         mCurLatLng = null;
         mParkedLocationID = null;
         mCurDialog = null;
-        mLocationsMap = new HashMap<>();
+        mParkedMarker = null;
+        mParkedViewModel = null;
 
         mSpotTypes = new ArrayList<>();
         mSpotTypes.add("unlimited");
@@ -165,21 +169,19 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String parked = preferences.getString(UserUtils.CUR_USER_PARKED, "");
+        String parked = preferences.getString(UserUtils.CUR_USER_PARKED_LOCATION, "");
         mCurUser = preferences.getString(UserUtils.CUR_USER, "");
         Log.d(TAG, "User pref: " + mCurUser);
         if (!parked.equals("")) {
             Log.d(TAG, "User parked");
             mParkedLocationID = parked;
-            Marker marker = mLocationsMap.get(mParkedLocationID);
-            if (marker != null) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
-            } else {
+            if (mParkedMarker == null) {
                 doMjestoGetLocationById(mParkedLocationID);
             }
         } else {
             Log.d(TAG, "User not parked");
         }
+        mParkedViewModel = ViewModelProviders.of(getActivity()).get(ParkedViewModel.class);
     }
 
     /**
@@ -202,7 +204,9 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             mMap.setPadding(0, actionBarHeight, 0, 0);
         }
 
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
+        if (mParkedMarker != null) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(mParkedMarker.getPosition()));
+        } else if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
             mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
@@ -220,6 +224,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         } else {
             Toast.makeText(getActivity(), "Don't have permission", Toast.LENGTH_LONG).show();
         }
+
 
         mMap.setMaxZoomPreference(20);
 
@@ -241,32 +246,40 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     public void parkUser(MjestoUtils.Location location) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        preferences.edit().putString(UserUtils.CUR_USER_PARKED, location._id).commit();
-        Marker marker =  mLocationsMap.get(location._id);
-        if (marker != null) {
-            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+        preferences.edit().putString(UserUtils.CUR_USER_PARKED_LOCATION, location._id).commit();
+        if (location.restriction.equals("limited")) {
+            Date endDate = MjestoUtils.addLimitWithDate(location.limit);
+            Log.d(TAG, "Park date: " + endDate.toString());
+            preferences.edit().putString(UserUtils.CUR_PARKED_END_DATE, endDate.toString()).commit();
         }
+        LatLng coords = MjestoUtils.getAverageLatLng(location.beginCoords, location.endCoords);
+
+        mParkedMarker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
+        mParkedMarker.setTag(location);
         mParkedLocationID = location._id;
+
+        if (mParkedMarker != null) {
+            mParkedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+        }
+
         Log.d(TAG, "location restriction: " + location.restriction);
         if (location.restriction.equals("limited")) {
-            String[] limit = location.limit.split(":");
-            int hours = Integer.parseInt(limit[0]);
-            int minutes = Integer.parseInt(limit[1]);
-            ParkedFragment.setTimer(hours, minutes);
+            mParkedViewModel.setEndDate(MjestoUtils.addLimitWithDate(location.limit));
         } else {
-            ParkedFragment.setParked();
+            mParkedViewModel.setParked(true);
         }
     }
 
     public void unparkUser(String locationID) {
         Log.d(TAG, "Unpark User");
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        preferences.edit().putString(UserUtils.CUR_USER_PARKED, "").commit();
-        Marker marker = mLocationsMap.get(locationID);
-        if (marker != null) {
-            marker.setIcon(BitmapDescriptorFactory.defaultMarker());
+        preferences.edit().putString(UserUtils.CUR_USER_PARKED_LOCATION, "").commit();
+        preferences.edit().putString(UserUtils.CUR_PARKED_END_DATE, "").commit();
+        if (mParkedMarker != null) {
+            mParkedMarker.remove();
         }
-        ParkedFragment.clearTimer();
+        mParkedViewModel.setParked(false);
+        mParkedViewModel.setEndDate(null);
         mParkedLocationID = null;
     }
 
@@ -293,12 +306,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
         return false;
-    }
-
-    private void doMjestoGetLocations() {
-        String url = getMjestoLocationsUrl();
-        Log.d(TAG, "Querying URL: " + url);
-        new MjestoGetLocationsTask().execute(url);
     }
 
     private void doMjestoGetLocationById(String locationID) {
@@ -344,7 +351,7 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
             mCurUser = preferences.getString(UserUtils.CUR_USER, "");
         }
-        if (mParkedLocationID != null) {
+        if (mParkedLocationID != null && mParkedMarker != null) {
             unparkUser(mParkedLocationID);
         }
         String url = MjestoUtils.getMjestoParkUrl();
@@ -354,16 +361,8 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         String endTime = null;
 
         if (mCurLocation.restriction.equals("limited")) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(new Date());
-            String[] limitArr = mCurLocation.limit.split(":");
-            int hour = Integer.parseInt(limitArr[0]);
-            int minute = Integer.parseInt(limitArr[1]);
-            calendar.add(Calendar.HOUR_OF_DAY, hour);
-            calendar.add(Calendar.MINUTE, minute);
-
-            Log.d(TAG, "End time: " + calendar.getTime());
-            endTime = String.valueOf(calendar.getTime());
+            Date endDate = MjestoUtils.addLimitWithDate(mCurLocation.limit);
+            endTime = String.valueOf(endDate);
         }
 
         new MjestoParkUserTask().execute(url, mCurUser, mCurLocation._id, endTime);
@@ -386,24 +385,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
         } else {
             String url = MjestoUtils.getMjestoParkedUserUrl(mCurUser);
             new MjestoDeleteParkedUserTask().execute(url);
-        }
-    }
-
-    private void populateMap(MjestoUtils.Location[] locations) {
-        for (MjestoUtils.Location location : locations) {
-            if (mLocationsMap.get(location._id) == null) {
-//                TODO: replace with drawing on canvas
-//                LatLng coords = new LatLng(location.coordinates.get(1), location.coordinates.get(0));
-
-//                Marker marker = mMap.addMarker(new MarkerOptions().position(coords).title("Parking Spot"));
-//                marker.setTag(location);
-
-//                if (mParkedLocationID != null && mParkedLocationID.equals(location._id)) {
-//                    marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-//                }
-//
-//                mLocationsMap.put(location._id, marker);
-            }
         }
     }
 
@@ -430,10 +411,10 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
     public void findLocationNearLatLng(LatLng latLng, MjestoUtils.Location[] locations) {
         for (MjestoUtils.Location location : locations) {
 //            if location has a greater longitude or latitude than the points on line, continue
-            if (Math.abs(latLng.latitude) * 111000 > Math.max(Math.abs(location.beginCoords.get(1)), Math.abs(location.endCoords.get(1))) * 111000 + 5
-                    || Math.abs(latLng.latitude) * 111000 < Math.min(Math.abs(location.beginCoords.get(1)), Math.abs(location.endCoords.get(1))) * 111000 - 5
-                    || Math.abs(latLng.longitude) * 111000 > Math.max(Math.abs(location.beginCoords.get(0)), Math.abs(location.endCoords.get(0))) * 111000 + 5
-                    || Math.abs(latLng.longitude) * 111000 < Math.min(Math.abs(location.beginCoords.get(0)), Math.abs(location.endCoords.get(0))) * 111000 - 5) {
+            if (Math.abs(latLng.latitude) * 111000 > Math.max(Math.abs(location.beginCoords.get(1)), Math.abs(location.endCoords.get(1))) * 111000 + 30
+                    || Math.abs(latLng.latitude) * 111000 < Math.min(Math.abs(location.beginCoords.get(1)), Math.abs(location.endCoords.get(1))) * 111000 - 30
+                    || Math.abs(latLng.longitude) * 111000 > Math.max(Math.abs(location.beginCoords.get(0)), Math.abs(location.endCoords.get(0))) * 111000 + 30
+                    || Math.abs(latLng.longitude) * 111000 < Math.min(Math.abs(location.beginCoords.get(0)), Math.abs(location.endCoords.get(0))) * 111000 - 30) {
                 continue;
             }
 
@@ -730,23 +711,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
     }
 
-    @Override
-    public void onCameraIdle() {
-        LatLngBounds latLngBounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-        Double distance = getDistanceFromBounds(latLngBounds);
-
-        LatLng position = mMap.getCameraPosition().target;
-        if (position != null) {
-            // 111,111 used as dirty conversion from coordinates to meters
-            String url = getMjestoLocationsUrl(
-                    Double.toString(position.longitude),
-                    Double.toString(position.latitude),
-                    Double.toString(distance / 2 * 25000));
-
-            new MjestoGetLocationsTask().execute(url);
-        }
-    }
-
     public double getDistanceFromBounds(LatLngBounds latLngBounds) {
         return Math.sqrt(
                 Math.abs((latLngBounds.northeast.latitude - latLngBounds.southwest.latitude)
@@ -764,40 +728,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
                     doMjestoParkUser();
                 }
                 break;
-        }
-    }
-
-    class MjestoGetLocationsTask extends AsyncTask<String, Void, String> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected String doInBackground(String... urls) {
-            String url = urls[0];
-            String results = null;
-            try {
-                results = NetworkUtils.doHttpGet(url);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            return results;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            Log.d(TAG, "Get response: " + s);
-
-            if (s != null) {
-                MjestoUtils.Location[] locations = MjestoUtils.parseLocationResults(s);
-                if (locations != null) {
-                    populateMap(locations);
-                }
-            }
-
         }
     }
 
@@ -970,7 +900,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
 
             if (s.equals("\"Location Delete Successful\"")) {
                 mCurDialog.dismiss();
-                mLocationsMap.remove(mCurLocation._id);
                 mTileOverlay.clearTileCache();
                 Toast.makeText(getActivity(), "Location Deleted Successfully", Toast.LENGTH_LONG).show();
             }

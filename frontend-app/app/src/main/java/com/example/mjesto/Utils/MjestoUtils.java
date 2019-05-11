@@ -3,10 +3,13 @@ package com.example.mjesto.Utils;
 import android.net.Uri;
 import android.util.Log;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 public class MjestoUtils {
     private final static String TAG = MjestoUtils.class.getSimpleName();
@@ -73,8 +76,25 @@ public class MjestoUtils {
         returnTimes[0] = time.contains("PM") ? hourInt + 12 : hourInt;
         returnTimes[1] = Integer.valueOf(times[1]);
         return returnTimes;
+    }
 
+    public static Date addLimitWithDate(String limit) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        String[] limitArr = limit.split(":");
+        int hour = Integer.parseInt(limitArr[0]);
+        int minute = Integer.parseInt(limitArr[1]);
+        calendar.add(Calendar.HOUR_OF_DAY, hour);
+        calendar.add(Calendar.MINUTE, minute);
 
+        Log.d(TAG, "End time: " + calendar.getTime());
+        return calendar.getTime();
+    }
+
+    public static LatLng getAverageLatLng(ArrayList<Double> beginCoords, ArrayList<Double> endCoords) {
+        Double longitude = (beginCoords.get(0) + endCoords.get(0)) / 2;
+        Double latitude = (beginCoords.get(1) + endCoords.get(1)) / 2;
+        return new LatLng(latitude, longitude);
     }
 
     public static String getMjestoLocationsUrl() {

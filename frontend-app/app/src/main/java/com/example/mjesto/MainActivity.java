@@ -25,6 +25,7 @@ import android.widget.Toast;
 
 import com.example.mjesto.Fragments.ProfileFragment;
 import com.example.mjesto.Fragments.WelcomeFragment;
+import com.example.mjesto.Fragments.WelcomeParkedFragment;
 import com.example.mjesto.Utils.UserUtils;
 
 import java.io.Serializable;
@@ -47,9 +48,17 @@ public class MainActivity extends AppCompatActivity implements
         mViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
         mDrawerLayout = findViewById(R.id.drawer);
 
-        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_container, new WelcomeFragment());
-        fragmentTransaction.commit();
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        if (!preferences.getString(UserUtils.CUR_USER_PARKED_LOCATION, "").equals("")) {
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.replace(R.id.fragment_container, new WelcomeParkedFragment());
+            fragmentTransaction.commit();
+        } else {
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.replace(R.id.fragment_container, new WelcomeFragment());
+            fragmentTransaction.commit();
+
+        }
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -78,18 +87,30 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
+        mViewModel.getFragmentNoBackstack().observe(this, new Observer<Fragment>() {
+            @Override
+            public void onChanged(@Nullable Fragment fragment) {
+                if (fragment == null) {
+                    return;
+                }
+                else {
+                    FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                    fragmentTransaction.replace(R.id.fragment_container, fragment);
+                    fragmentTransaction.commit();
+                }
+            }
+        });
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  },
                     FINE_LOCATION_PERMISSION_REQUEST );
         }
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        preferences.edit()
-                .putString(UserUtils.CUR_USER, UserUtils.user)
-                .commit();
+
+        preferences.edit().putString(UserUtils.CUR_USER, UserUtils.user).commit();
         Log.d(TAG, "User: " + preferences.getString(UserUtils.CUR_USER, "No user found"));
-        Log.d(TAG, "Parked ID: " + preferences.getString(UserUtils.CUR_USER_PARKED, "Not parked"));
+        Log.d(TAG, "Parked ID: " + preferences.getString(UserUtils.CUR_USER_PARKED_LOCATION, "Not parked"));
 
     }
 
@@ -127,5 +148,9 @@ public class MainActivity extends AppCompatActivity implements
 
     public static void updateFragment(Fragment fragment, String tag) {
         mViewModel.setFragment(fragment, tag);
+    }
+
+    public static void updateFragmentWithoutBackstack(Fragment fragment) {
+        mViewModel.setFragmentNoBackstack(fragment);
     }
 }

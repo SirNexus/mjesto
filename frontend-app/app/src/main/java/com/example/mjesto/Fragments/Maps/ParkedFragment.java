@@ -1,5 +1,8 @@
 package com.example.mjesto.Fragments.Maps;
 
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModel;
+import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.annotation.NonNull;
@@ -11,8 +14,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.example.mjesto.MainViewModel;
 import com.example.mjesto.R;
+import com.example.mjesto.Utils.ParkedViewModel;
 
+import java.time.Period;
+import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +37,6 @@ public class ParkedFragment extends Fragment {
 
     private static CountDownTimer mCountdownTimer;
 
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -47,50 +53,59 @@ public class ParkedFragment extends Fragment {
         return mView;
     }
 
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        ParkedViewModel viewModel = ViewModelProviders.of(getActivity()).get(ParkedViewModel.class);
+        viewModel.getParked().observe(getActivity(), new Observer<Boolean>() {
+            @Override
+            public void onChanged(@Nullable Boolean bool) {
+                Log.d(TAG, "Parked? " + bool);
+                if (bool != null) {
+                    if (!bool) {
+                        clearTimer();
+                        clearParked();
+                    } else {
+                        setParked();
+                    }
+
+                }
+            }
+        });
+        viewModel.getTimeRemaining().observe(getActivity(), new Observer<String>() {
+            @Override
+            public void onChanged(@Nullable String timeRemaining) {
+                Log.d(TAG, "Time remaining: " + timeRemaining);
+                if (timeRemaining == null) {
+                    clearTimer();
+                } else {
+                    setTimer(timeRemaining);
+                }
+            }
+        });
+    }
+
     public static void setParked() {
         mTimeRemainingLabelTV.setVisibility(View.INVISIBLE);
         mTimeRemainingTV.setVisibility(View.INVISIBLE);
         mParkingStatusTV.setText(PARKED_STATE);
     }
 
-    public static void setTimer(int hours, int minutes) {
-        Log.d(TAG, "setTimer: " + hours);
+    public static void clearParked() {
+        mParkingStatusTV.setText(NOT_PARKED_STATE);
+    }
 
+    public static void setTimer(String time) {
         mTimeRemainingLabelTV.setVisibility(View.VISIBLE);
         mTimeRemainingTV.setVisibility(View.VISIBLE);
+        mTimeRemainingTV.setText(time);
         mParkingStatusTV.setText(PARKED_STATE);
-
-        mCountdownTimer = new CountDownTimer(hours * 60 * 60 * 1000 + minutes * 60 * 1000, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                int hours = (int) (TimeUnit.MILLISECONDS.toHours(millisUntilFinished));
-                int minutes = (int) (TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) % TimeUnit.HOURS.toMinutes(1));
-                int seconds = (int) (TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % TimeUnit.MINUTES.toSeconds(1));
-
-                if (hours != 0) {
-                    mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
-                } else if (minutes != 0) {
-                    mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
-                } else if (seconds != 0) {
-                    mTimeRemainingTV.setText(String.format(Locale.getDefault(), "%02d", seconds));
-                }
-            }
-
-            @Override
-            public void onFinish() {
-                mTimeRemainingTV.setText("0");
-            }
-        };
-
-        mCountdownTimer.start();
-
     }
 
     public static void clearTimer() {
         Log.d(TAG, "clearTimer");
         mTimeRemainingLabelTV.setVisibility(View.INVISIBLE);
         mTimeRemainingTV.setVisibility(View.INVISIBLE);
-        mParkingStatusTV.setText(NOT_PARKED_STATE);
         if (mCountdownTimer != null) {
             mCountdownTimer.cancel();
         }

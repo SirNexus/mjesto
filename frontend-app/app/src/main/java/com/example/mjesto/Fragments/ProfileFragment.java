@@ -50,7 +50,7 @@ public class ProfileFragment extends Fragment implements
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String parkingStatus = preferences.getString(UserUtils.CUR_USER_PARKED, "");
+        String parkingStatus = preferences.getString(UserUtils.CUR_USER_PARKED_LOCATION, "");
         String user = preferences.getString(UserUtils.CUR_USER, "");
 
         Log.d(TAG, "user: " + user);
