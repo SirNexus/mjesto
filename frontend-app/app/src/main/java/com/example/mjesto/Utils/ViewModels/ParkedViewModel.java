@@ -22,7 +22,7 @@ public class ParkedViewModel extends ViewModel {
     public MutableLiveData<Boolean> getParked() {
         if (vm_parked == null) {
             vm_parked = new MutableLiveData<>();
-            vm_parked.setValue(false);
+            vm_parked.setValue(null);
         }
         return vm_parked;
     }
@@ -45,6 +45,7 @@ public class ParkedViewModel extends ViewModel {
     public void setEndDate(Date endDate) {
         if (mCountdownTimer != null) {
             mCountdownTimer.cancel();
+            mCountdownTimer = null;
         }
         if (vm_time_remaining == null) {
             vm_time_remaining = new MutableLiveData<>();
@@ -56,18 +57,19 @@ public class ParkedViewModel extends ViewModel {
 
             long millis = endDate.getTime() - (new Date()).getTime();
             int hours = (int) millis / (1000 * 60 * 60);
-            int minutes = ((int) millis / (1000 * 60)) - hours * 60 + 1;
+            int minutes = ((int) millis / (1000 * 60)) - hours * 60;
+            int seconds = ((int) millis / 1000) - hours * 60 * 60 - minutes * 60;
 
             Log.d(TAG, "Time to set: " + hours + ":" + minutes);
 
-            setTimer(hours, minutes);
+            setTimer(hours, minutes, seconds);
         }
 
     }
 
-    public void setTimer(int hours, int minutes) {
+    public void setTimer(int hours, int minutes, int seconds) {
         if (mCountdownTimer == null) {
-            mCountdownTimer = new CountDownTimer(hours * 60 * 60 * 1000 + minutes * 60 * 1000, 1000) {
+            mCountdownTimer = new CountDownTimer(hours * 60 * 60 * 1000 + minutes * 60 * 1000 + seconds * 1000, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
                     int hours = (int) (TimeUnit.MILLISECONDS.toHours(millisUntilFinished));
@@ -75,7 +77,7 @@ public class ParkedViewModel extends ViewModel {
                     int seconds = (int) (TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % TimeUnit.MINUTES.toSeconds(1));
 
                     if (hours != 0) {
-                        vm_time_remaining.setValue(String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds));
+                        vm_time_remaining.setValue(String.format(Locale.getDefault(), "%02d:%02d", hours, minutes));
                     } else if (minutes != 0) {
                         vm_time_remaining.setValue(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
                     } else if (seconds != 0) {

@@ -54,13 +54,6 @@ public class SpotsTileProvider extends CanvasTileProvider {
     public void onDraw(Canvas canvas, TileProjection projection, int zoom) {
 
         LatLngBounds bounds = projection.getTileBounds();
-        Log.d(TAG, "Bounds: /" + bounds.southwest.longitude +
-                "/" + bounds.southwest.latitude +
-                "/" + bounds.northeast.longitude +
-                "/" + bounds.northeast.latitude);
-//        LatLng corvallis = new LatLng(44.5646, -123.2620);
-
-
 
         String url = MjestoUtils.getMjestoLocationsUrl(
                 Double.toString(bounds.southwest.longitude),

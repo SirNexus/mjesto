@@ -276,7 +276,6 @@ public class MapsFragment extends Fragment implements GoogleMap.OnMyLocationButt
             mParkedMarker.remove();
         }
         mParkedViewModel.setParked(false);
-        mParkedViewModel.setEndDate(null);
         mParkedLocationID = null;
     }
 

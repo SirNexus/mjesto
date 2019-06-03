@@ -41,7 +41,7 @@ public class ParkedFragment extends Fragment {
 
         mCountdownTimer = null;
 
-        clearTimer();
+//        clearTimer();
 
         return mView;
     }
@@ -69,9 +69,7 @@ public class ParkedFragment extends Fragment {
             @Override
             public void onChanged(@Nullable String timeRemaining) {
                 Log.d(TAG, "Time remaining: " + timeRemaining);
-                if (timeRemaining == null) {
-                    clearTimer();
-                } else {
+                if (timeRemaining != null) {
                     setTimer(timeRemaining);
                 }
             }

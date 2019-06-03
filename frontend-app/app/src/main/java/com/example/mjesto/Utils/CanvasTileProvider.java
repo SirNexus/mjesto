@@ -12,6 +12,9 @@ import com.google.android.gms.maps.model.TileProvider;
 
 import java.io.ByteArrayOutputStream;
 
+// All credit for this code goes to Stack Overflow post:
+// https://stackoverflow.com/questions/23936780/polylines-performance-issues-on-googlemaps-api-v2
+
 /* imports should be obvious */
 public abstract class CanvasTileProvider implements TileProvider {
     private static int TILE_SIZE = 512
